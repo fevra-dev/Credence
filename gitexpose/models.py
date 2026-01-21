@@ -5,8 +5,8 @@ Defines the core data structures used throughout the application.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, List
 from enum import Enum
+from typing import List, Optional
 
 
 class Severity(Enum):

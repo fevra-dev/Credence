@@ -15,7 +15,8 @@ Import this alongside the main paths.py to extend detection coverage.
 """
 
 from typing import List
-from ..models import PathDefinition, Category, Severity
+
+from ..models import Category, PathDefinition, Severity
 
 # ============================================================
 # EXTENDED SENSITIVE PATHS DATABASE
@@ -25,7 +26,7 @@ EXTENDED_PATHS: List[PathDefinition] = [
     # --------------------------------------------------------
     # MODERN JAVASCRIPT FRAMEWORKS
     # --------------------------------------------------------
-    
+
     # Next.js
     PathDefinition(
         path="_next/static/chunks/webpack.js",
@@ -67,7 +68,7 @@ EXTENDED_PATHS: List[PathDefinition] = [
         signatures=[],
         content_types=["text/plain"],
     ),
-    
+
     # Nuxt.js
     PathDefinition(
         path=".nuxt/dist/server/server.js",
@@ -93,7 +94,7 @@ EXTENDED_PATHS: List[PathDefinition] = [
         signatures=["defineNuxtConfig", "export default"],
         content_types=["text/plain", "application/typescript"],
     ),
-    
+
     # Vite
     PathDefinition(
         path="vite.config.js",
@@ -111,7 +112,7 @@ EXTENDED_PATHS: List[PathDefinition] = [
         signatures=["defineConfig", "vite", "plugins"],
         content_types=["text/plain"],
     ),
-    
+
     # Remix
     PathDefinition(
         path="remix.config.js",
@@ -121,7 +122,7 @@ EXTENDED_PATHS: List[PathDefinition] = [
         signatures=["module.exports", "appDirectory", "serverBuildPath"],
         content_types=["application/javascript", "text/plain"],
     ),
-    
+
     # SvelteKit
     PathDefinition(
         path="svelte.config.js",
@@ -131,7 +132,7 @@ EXTENDED_PATHS: List[PathDefinition] = [
         signatures=["adapter", "kit", "preprocess"],
         content_types=["application/javascript", "text/plain"],
     ),
-    
+
     # --------------------------------------------------------
     # SOURCE MAPS (Critical for source code exposure)
     # --------------------------------------------------------
@@ -167,11 +168,11 @@ EXTENDED_PATHS: List[PathDefinition] = [
         signatures=['"version":', '"sources":', '"mappings":'],
         content_types=["application/json"],
     ),
-    
+
     # --------------------------------------------------------
     # CLOUD CONFIGURATION FILES
     # --------------------------------------------------------
-    
+
     # AWS
     PathDefinition(
         path=".aws/credentials",
@@ -205,7 +206,7 @@ EXTENDED_PATHS: List[PathDefinition] = [
         signatures=["providers", "awscloudformation", "api"],
         content_types=["application/json"],
     ),
-    
+
     # Google Cloud
     PathDefinition(
         path="google-credentials.json",
@@ -247,7 +248,7 @@ EXTENDED_PATHS: List[PathDefinition] = [
         signatures=["projects", "default"],
         content_types=["application/json"],
     ),
-    
+
     # Azure
     PathDefinition(
         path="azure-pipelines.yml",
@@ -265,7 +266,7 @@ EXTENDED_PATHS: List[PathDefinition] = [
         signatures=["$schema", "resources", "parameters"],
         content_types=["application/json"],
     ),
-    
+
     # --------------------------------------------------------
     # CONTAINER & ORCHESTRATION
     # --------------------------------------------------------
@@ -309,7 +310,7 @@ EXTENDED_PATHS: List[PathDefinition] = [
         signatures=["releases", "repositories", "environments"],
         content_types=["text/yaml"],
     ),
-    
+
     # --------------------------------------------------------
     # API DOCUMENTATION (Attack Surface Mapping)
     # --------------------------------------------------------
@@ -361,7 +362,7 @@ EXTENDED_PATHS: List[PathDefinition] = [
         signatures=["playground", "GraphQL", "endpoint"],
         content_types=["text/html"],
     ),
-    
+
     # --------------------------------------------------------
     # DEBUG & MONITORING ENDPOINTS
     # --------------------------------------------------------
@@ -429,7 +430,7 @@ EXTENDED_PATHS: List[PathDefinition] = [
         signatures=["Trace", "Request", "Response"],
         content_types=["text/html"],
     ),
-    
+
     # --------------------------------------------------------
     # PACKAGE MANAGER FILES
     # --------------------------------------------------------
@@ -505,7 +506,7 @@ EXTENDED_PATHS: List[PathDefinition] = [
         signatures=["[[package]]", "name =", "checksum ="],
         content_types=["text/plain"],
     ),
-    
+
     # --------------------------------------------------------
     # IDE & EDITOR CONFIGURATIONS
     # --------------------------------------------------------
@@ -549,7 +550,7 @@ EXTENDED_PATHS: List[PathDefinition] = [
         signatures=["root =", "indent_style", "indent_size"],
         content_types=["text/plain"],
     ),
-    
+
     # --------------------------------------------------------
     # SECRETS & CREDENTIALS
     # --------------------------------------------------------
@@ -625,7 +626,7 @@ EXTENDED_PATHS: List[PathDefinition] = [
         signatures=["-----BEGIN", "PRIVATE KEY"],
         content_types=["text/plain"],
     ),
-    
+
     # --------------------------------------------------------
     # VERCEL / NETLIFY / SERVERLESS
     # --------------------------------------------------------
@@ -669,7 +670,7 @@ EXTENDED_PATHS: List[PathDefinition] = [
         signatures=["AWSTemplateFormatVersion", "Transform", "Resources"],
         content_types=["text/yaml"],
     ),
-    
+
     # --------------------------------------------------------
     # ADDITIONAL BACKUP PATTERNS
     # --------------------------------------------------------
@@ -736,19 +737,19 @@ def get_all_paths_combined() -> List[PathDefinition]:
     Import the main paths and combine with extended paths.
     """
     from ..paths import get_all_paths
-    
+
     main_paths = get_all_paths()
     extended = get_extended_paths()
-    
+
     # Combine and deduplicate by path
     seen_paths = set()
     combined = []
-    
+
     for path_def in main_paths + extended:
         if path_def.path not in seen_paths:
             seen_paths.add(path_def.path)
             combined.append(path_def)
-    
+
     return combined
 
 
@@ -776,13 +777,13 @@ def get_framework_specific_paths(framework: str) -> List[PathDefinition]:
         'rails': ['rails', 'ruby'],
         'laravel': ['laravel', 'artisan'],
     }
-    
+
     keywords = framework_keywords.get(framework.lower(), [])
     if not keywords:
         return []
-    
+
     return [
         p for p in EXTENDED_PATHS
-        if any(kw.lower() in p.path.lower() or kw.lower() in p.description.lower() 
+        if any(kw.lower() in p.path.lower() or kw.lower() in p.description.lower()
                for kw in keywords)
     ]

@@ -34,10 +34,10 @@ __author__ = "GitExpose Contributors"
 __license__ = "MIT"
 
 # Core scanner
+# Models
+from .models import ScanReport, ScanResult, TargetReport
 from .scanner import GitExposeScanner
 
-# Models
-from .models import ScanReport, TargetReport, Finding
 
 # Submodule exports (lazy import to avoid circular dependencies)
 def __getattr__(name):
@@ -61,15 +61,12 @@ __all__ = [
     '__version__',
     '__author__',
     '__license__',
-    
     # Core
     'GitExposeScanner',
-    
     # Models
     'ScanReport',
-    'TargetReport', 
-    'Finding',
-    
+    'TargetReport',
+    'ScanResult',
     # Submodules (accessed via gitexpose.advanced, etc.)
     'advanced',
     'git',

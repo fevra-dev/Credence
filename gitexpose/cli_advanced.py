@@ -15,20 +15,20 @@ Author: GitExpose Security Research
 """
 
 import asyncio
-import click
 import json
 import sys
-from pathlib import Path
-from typing import List, Optional
 from datetime import datetime
+from typing import Optional
+
+import click
 
 # Rich console for beautiful output (optional but recommended)
 try:
-    from rich.console import Console
-    from rich.table import Table
-    from rich.panel import Panel
-    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
     from rich import print as rprint
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+    from rich.table import Table
     RICH_AVAILABLE = True
     console = Console()
 except ImportError:
@@ -86,10 +86,10 @@ def print_finding(severity: str, message: str, url: str = None):
         "low": "🟢",
         "info": "ℹ️",
     }
-    
+
     icon = icons.get(severity.lower(), "•")
     color = colors.get(severity.lower(), "white")
-    
+
     if RICH_AVAILABLE:
         console.print(f"{icon} [{color}][{severity.upper()}][/] {message}")
         if url:
@@ -141,12 +141,12 @@ def scan(target, concurrency, timeout, output, out_file, git_dump, react2shell,
     """
     if not quiet:
         print_banner()
-    
+
     # Enable all if full audit
     if full_audit:
         react2shell = ml_models = llm_exposure = unicode_detect = True
         source_maps = cicd = api_discovery = git_dump = True
-    
+
     asyncio.run(_run_scan(
         target=target,
         concurrency=concurrency,
@@ -170,7 +170,7 @@ async def _run_scan(**kwargs):
     """Execute the scan with all enabled modules"""
     import time
     start_time = time.time()
-    
+
     target = kwargs['target']
     results = {
         "target": target,
@@ -179,10 +179,10 @@ async def _run_scan(**kwargs):
         "total_findings": 0,
         "critical_findings": 0,
     }
-    
+
     if not kwargs['quiet']:
         print_section(f"Scanning: {target}")
-    
+
     # Create progress display
     if RICH_AVAILABLE and not kwargs['quiet']:
         with Progress(
@@ -192,7 +192,7 @@ async def _run_scan(**kwargs):
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
             console=console
         ) as progress:
-            
+
             # Calculate total tasks
             tasks = []
             if kwargs['react2shell']:
@@ -209,53 +209,53 @@ async def _run_scan(**kwargs):
                 tasks.append(("CI/CD Exposure", _scan_cicd))
             if kwargs['api_discovery']:
                 tasks.append(("API Discovery", _scan_api))
-            
+
             if not tasks:
                 # Default scan
                 tasks.append(("Basic Scan", _scan_basic))
-            
+
             main_task = progress.add_task("[cyan]Overall Progress", total=len(tasks))
-            
+
             for task_name, task_func in tasks:
                 task_id = progress.add_task(f"[yellow]{task_name}", total=100)
-                
+
                 try:
                     result = await task_func(target, kwargs.get('verbose', False))
                     results["modules"][task_name] = result
-                    
+
                     # Count findings
                     if isinstance(result, dict):
                         findings = result.get('findings_count', result.get('exposures_count', 0))
                         results["total_findings"] += findings
                         results["critical_findings"] += result.get('critical_findings', 0)
-                    
+
                     progress.update(task_id, completed=100)
                 except Exception as e:
                     results["modules"][task_name] = {"error": str(e)}
                     progress.update(task_id, completed=100)
-                
+
                 progress.advance(main_task)
     else:
         # Non-rich output
         if kwargs['react2shell']:
             print("  [*] Running React2Shell detection...")
             results["modules"]["React2Shell"] = await _scan_react2shell(target, kwargs.get('verbose', False))
-        
+
         if kwargs['ml_models']:
             print("  [*] Scanning for ML models...")
             results["modules"]["ML Models"] = await _scan_ml_models(target, kwargs.get('verbose', False))
-        
+
         if kwargs['llm_exposure']:
             print("  [*] Checking LLM/RAG exposure...")
             results["modules"]["LLM Exposure"] = await _scan_llm_exposure(target, kwargs.get('verbose', False))
-        
+
         if kwargs['unicode_detect']:
             print("  [*] Detecting invisible Unicode...")
             results["modules"]["Unicode"] = await _scan_unicode(target, kwargs.get('verbose', False))
-    
+
     # Calculate duration
     results["scan_duration"] = time.time() - start_time
-    
+
     # Output results
     if kwargs['output'] == 'json':
         output_json(results, kwargs.get('out_file'))
@@ -269,10 +269,10 @@ async def _scan_react2shell(target: str, verbose: bool) -> dict:
     """Run React2Shell detection"""
     try:
         from .react2shell_detector import React2ShellDetector
-        
+
         detector = React2ShellDetector(deep_scan=True)
         finding = await detector.scan(target)
-        
+
         return {
             "status": finding.status.value,
             "framework": finding.framework.value,
@@ -291,10 +291,10 @@ async def _scan_ml_models(target: str, verbose: bool) -> dict:
     """Run ML model scan"""
     try:
         from .ml_model_scanner import MLModelScanner
-        
+
         scanner = MLModelScanner(deep_analysis=True)
         result = await scanner.scan(target)
-        
+
         return {
             "exposed_models_count": len(result.exposed_models),
             "exposed_models": [
@@ -317,10 +317,10 @@ async def _scan_llm_exposure(target: str, verbose: bool) -> dict:
     """Run LLM exposure scan"""
     try:
         from .llm_exposure_scanner import LLMExposureScanner
-        
+
         scanner = LLMExposureScanner()
         result = await scanner.scan(target)
-        
+
         return {
             "exposures_count": len(result.exposures),
             "exposures": [
@@ -344,10 +344,10 @@ async def _scan_unicode(target: str, verbose: bool) -> dict:
     """Run Unicode detection"""
     try:
         from .invisible_unicode_detector import InvisibleUnicodeScanner
-        
+
         scanner = InvisibleUnicodeScanner()
         result = await scanner.scan(target)
-        
+
         return {
             "files_analyzed": len(result.analyzed_files),
             "total_anomalies": result.total_anomalies,
@@ -365,10 +365,10 @@ async def _scan_sourcemaps(target: str, verbose: bool) -> dict:
     """Run source map scan"""
     try:
         from .sourcemap_analyzer import SourceMapAnalyzer
-        
+
         analyzer = SourceMapAnalyzer()
         result = await analyzer.scan(target)
-        
+
         return result
     except Exception as e:
         return {"error": str(e)}
@@ -378,10 +378,10 @@ async def _scan_cicd(target: str, verbose: bool) -> dict:
     """Run CI/CD scan"""
     try:
         from .cicd_scanner import CICDScanner
-        
+
         scanner = CICDScanner()
         result = await scanner.scan(target)
-        
+
         return result
     except Exception as e:
         return {"error": str(e)}
@@ -391,10 +391,10 @@ async def _scan_api(target: str, verbose: bool) -> dict:
     """Run API discovery"""
     try:
         from .api_discovery import APIDiscovery
-        
+
         discovery = APIDiscovery()
         result = await discovery.discover(target)
-        
+
         return result
     except Exception as e:
         return {"error": str(e)}
@@ -403,7 +403,7 @@ async def _scan_api(target: str, verbose: bool) -> dict:
 async def _scan_basic(target: str, verbose: bool) -> dict:
     """Run basic scan"""
     import aiohttp
-    
+
     findings = []
     paths = [
         ("/.git/config", "critical"),
@@ -413,10 +413,10 @@ async def _scan_basic(target: str, verbose: bool) -> dict:
         ("/config.json", "high"),
         ("/package.json", "medium"),
     ]
-    
+
     if not target.startswith(('http://', 'https://')):
         target = f"https://{target}"
-    
+
     async with aiohttp.ClientSession() as session:
         for path, severity in paths:
             try:
@@ -430,7 +430,7 @@ async def _scan_basic(target: str, verbose: bool) -> dict:
                         })
             except Exception:
                 continue
-    
+
     return {
         "findings_count": len(findings),
         "findings": findings,
@@ -442,25 +442,25 @@ def output_console(results: dict, quiet: bool):
     """Output results to console"""
     if not quiet:
         print_section("Scan Results")
-    
+
     total = results.get("total_findings", 0)
     critical = results.get("critical_findings", 0)
     duration = results.get("scan_duration", 0)
-    
+
     if RICH_AVAILABLE and not quiet:
         # Summary table
         table = Table(title="Summary")
         table.add_column("Metric", style="cyan")
         table.add_column("Value", style="white")
-        
+
         table.add_row("Target", results["target"])
         table.add_row("Duration", f"{duration:.2f}s")
         table.add_row("Total Findings", str(total))
         table.add_row("Critical", f"[red]{critical}[/]" if critical > 0 else "0")
-        
+
         console.print(table)
         console.print()
-        
+
         # Module results
         for module_name, module_result in results.get("modules", {}).items():
             if "error" in module_result:
@@ -468,7 +468,7 @@ def output_console(results: dict, quiet: bool):
             else:
                 count = module_result.get('findings_count', module_result.get('exposures_count', 0))
                 console.print(f"[green]✓ {module_name}: {count} findings[/]")
-                
+
                 # Show details for critical findings
                 if module_result.get('critical_findings', 0) > 0:
                     for finding in module_result.get('findings', module_result.get('exposures', []))[:5]:
@@ -486,7 +486,7 @@ def output_console(results: dict, quiet: bool):
 def output_json(results: dict, out_file: Optional[str]):
     """Output results as JSON"""
     json_str = json.dumps(results, indent=2, default=str)
-    
+
     if out_file:
         with open(out_file, 'w') as f:
             f.write(json_str)
@@ -501,11 +501,11 @@ def output_json(results: dict, out_file: Optional[str]):
 def output_html(results: dict, out_file: Optional[str]):
     """Output results as HTML report"""
     html = generate_html_report(results)
-    
+
     out_file = out_file or "gitexpose_report.html"
     with open(out_file, 'w') as f:
         f.write(html)
-    
+
     if RICH_AVAILABLE:
         console.print(f"[green]HTML report saved to {out_file}[/]")
     else:
@@ -523,14 +523,14 @@ def generate_html_report(results: dict) -> str:
             count = data.get('findings_count', data.get('exposures_count', 0))
             status = "critical" if data.get('critical_findings', 0) > 0 else "ok"
             details = f"{count} findings"
-        
+
         modules_html += f"""
         <div class="module {status}">
             <h3>{name}</h3>
             <p>{details}</p>
         </div>
         """
-    
+
     return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -598,17 +598,17 @@ def react2shell(target, deep_scan, output):
     """
     print_banner()
     print_section("React2Shell Detection")
-    
+
     asyncio.run(_run_react2shell(target, deep_scan, output))
 
 
 async def _run_react2shell(target: str, deep_scan: bool, output: str):
     """Execute React2Shell scan"""
     from .react2shell_detector import React2ShellDetector
-    
+
     detector = React2ShellDetector(deep_scan=deep_scan)
     finding = await detector.scan(target)
-    
+
     if output == 'json':
         print(json.dumps({
             "target": target,
@@ -636,17 +636,17 @@ def ml_scan(target, deep_analysis, output):
     """
     print_banner()
     print_section("ML Model Supply Chain Scan")
-    
+
     asyncio.run(_run_ml_scan(target, deep_analysis, output))
 
 
 async def _run_ml_scan(target: str, deep_analysis: bool, output: str):
     """Execute ML model scan"""
     from .ml_model_scanner import MLModelScanner
-    
+
     scanner = MLModelScanner(deep_analysis=deep_analysis)
     result = await scanner.scan(target)
-    
+
     if output == 'json':
         print(json.dumps({
             "target": target,
@@ -672,17 +672,17 @@ def llm_scan(target, output):
     """
     print_banner()
     print_section("LLM/RAG Infrastructure Scan")
-    
+
     asyncio.run(_run_llm_scan(target, output))
 
 
 async def _run_llm_scan(target: str, output: str):
     """Execute LLM exposure scan"""
     from .llm_exposure_scanner import LLMExposureScanner
-    
+
     scanner = LLMExposureScanner()
     result = await scanner.scan(target)
-    
+
     if output == 'json':
         print(json.dumps({
             "target": target,
@@ -711,7 +711,7 @@ def unicode_scan(target, file_path, output):
     """
     print_banner()
     print_section("Invisible Unicode Detection")
-    
+
     if file_path:
         asyncio.run(_run_unicode_file(file_path, output))
     elif target:
@@ -724,10 +724,10 @@ def unicode_scan(target, file_path, output):
 async def _run_unicode_url(target: str, output: str):
     """Scan URL for invisible Unicode"""
     from .invisible_unicode_detector import InvisibleUnicodeScanner
-    
+
     scanner = InvisibleUnicodeScanner()
     result = await scanner.scan(target)
-    
+
     if output == 'json':
         print(json.dumps({
             "target": target,
@@ -743,13 +743,13 @@ async def _run_unicode_url(target: str, output: str):
 async def _run_unicode_file(file_path: str, output: str):
     """Analyze local file for invisible Unicode"""
     from .invisible_unicode_detector import InvisibleUnicodeAnalyzer
-    
+
     with open(file_path, 'r', errors='replace') as f:
         content = f.read()
-    
+
     analyzer = InvisibleUnicodeAnalyzer()
     anomalies = analyzer.analyze(content, file_path)
-    
+
     if output == 'json':
         print(json.dumps({
             "file": file_path,
@@ -791,7 +791,7 @@ def list_tools():
     """List all available scanning tools."""
     print_banner()
     print_section("Available Tools")
-    
+
     tools = [
         ("scan", "Comprehensive security scan", "--full-audit for all modules"),
         ("react2shell", "React2Shell (CVE-2025-55182) detection", "--deep-scan"),
@@ -800,16 +800,16 @@ def list_tools():
         ("unicode-scan", "Invisible Unicode detection", "GlassWorm patterns"),
         ("mcp", "Start MCP server", "For AI agent integration"),
     ]
-    
+
     if RICH_AVAILABLE:
         table = Table(title="GitExpose Tools")
         table.add_column("Command", style="cyan")
         table.add_column("Description", style="white")
         table.add_column("Key Options", style="dim")
-        
+
         for cmd, desc, opts in tools:
             table.add_row(cmd, desc, opts)
-        
+
         console.print(table)
     else:
         for cmd, desc, opts in tools:

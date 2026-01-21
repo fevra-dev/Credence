@@ -19,18 +19,18 @@ Author: GitExpose Security Research
 """
 
 import asyncio
-import aiohttp
+import base64
+import hashlib
+import json
 import re
 import struct
-import zlib
-import json
-import hashlib
-from typing import Dict, List, Optional, Set, Tuple, Any, Union
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
-import base64
+from typing import Any, Dict, List, Optional
+from urllib.parse import urljoin
+
+import aiohttp
 
 
 class ModelRisk(Enum):
@@ -99,7 +99,7 @@ class PickleAnalyzer:
     - Global function references (os.system, subprocess, etc.)
     - Nested pickle streams
     """
-    
+
     # Dangerous pickle opcodes
     DANGEROUS_OPCODES = {
         b'\x63': 'GLOBAL',      # Push global by module.name
@@ -111,7 +111,7 @@ class PickleAnalyzer:
         b'\x84': 'EXT4',         # Extension code
         b'\x92': 'NEWOBJ_EX',    # Extended newobj
     }
-    
+
     # Known malicious module references
     DANGEROUS_MODULES = [
         b'os', b'subprocess', b'sys', b'builtins',
@@ -119,7 +119,7 @@ class PickleAnalyzer:
         b'pickle', b'_pickle', b'marshal', b'importlib',
         b'runpy', b'code', b'codeop', b'compile',
     ]
-    
+
     # Known malicious function patterns
     DANGEROUS_FUNCTIONS = [
         b'system', b'popen', b'spawn', b'exec', b'eval',
@@ -127,7 +127,7 @@ class PickleAnalyzer:
         b'load', b'loads', b'Popen', b'call', b'check_output',
         b'run', b'create_connection', b'urlopen',
     ]
-    
+
     # Pickle protocol signatures
     PICKLE_SIGNATURES = [
         b'\x80\x02',  # Protocol 2
@@ -137,22 +137,22 @@ class PickleAnalyzer:
         b'(dp0',      # Protocol 0
         b'(lp0',      # Protocol 0 list
     ]
-    
+
     def analyze(self, content: bytes) -> List[MaliciousIndicator]:
         """Analyze pickle content for malicious patterns"""
         indicators = []
-        
+
         # Check for pickle signature
         if not self._is_pickle(content):
             return indicators
-        
+
         # Scan for dangerous opcodes
         for opcode, name in self.DANGEROUS_OPCODES.items():
             positions = self._find_all(content, opcode)
             for pos in positions:
                 # Extract context around opcode
                 context = content[pos:pos+50]
-                
+
                 # Check if followed by dangerous module/function
                 for module in self.DANGEROUS_MODULES:
                     if module in context:
@@ -163,7 +163,7 @@ class PickleAnalyzer:
                             raw_bytes=context[:30],
                             confidence=0.9
                         ))
-                
+
                 for func in self.DANGEROUS_FUNCTIONS:
                     if func in context:
                         indicators.append(MaliciousIndicator(
@@ -173,7 +173,7 @@ class PickleAnalyzer:
                             raw_bytes=context[:30],
                             confidence=0.85
                         ))
-        
+
         # Check for nested pickles (obfuscation technique)
         nested_count = len(self._find_all(content, b'\x80\x04'))
         if nested_count > 1:
@@ -182,7 +182,7 @@ class PickleAnalyzer:
                 description=f"Contains {nested_count} nested pickle streams (obfuscation indicator)",
                 confidence=0.6
             ))
-        
+
         # Check for base64 encoded content (common obfuscation)
         b64_pattern = rb'[A-Za-z0-9+/]{50,}={0,2}'
         b64_matches = re.findall(b64_pattern, content)
@@ -199,7 +199,7 @@ class PickleAnalyzer:
                     ))
             except Exception:
                 pass
-        
+
         # Check for 7z compression (nullifAI evasion technique)
         if content[:2] == b'7z' or b"7z\xbc\xaf\x27\x1c" in content[:20]:
             indicators.append(MaliciousIndicator(
@@ -207,13 +207,13 @@ class PickleAnalyzer:
                 description="Uses 7z compression (known scanner evasion technique)",
                 confidence=0.8
             ))
-        
+
         return indicators
-    
+
     def _is_pickle(self, content: bytes) -> bool:
         """Check if content appears to be a pickle file"""
         return any(content.startswith(sig) for sig in self.PICKLE_SIGNATURES)
-    
+
     def _find_all(self, data: bytes, pattern: bytes) -> List[int]:
         """Find all occurrences of pattern in data"""
         positions = []
@@ -234,13 +234,13 @@ class PyTorchAnalyzer:
     PyTorch's torch.load() uses pickle by default, making it
     vulnerable to the same RCE vectors as raw pickle.
     """
-    
+
     # PyTorch file signatures
     PYTORCH_SIGNATURES = [
         b'PK\x03\x04',  # ZIP format (modern .pt files)
         b'\x80\x02',    # Pickle protocol 2 (legacy)
     ]
-    
+
     # Dangerous patterns in PyTorch serialized data
     DANGEROUS_PATTERNS = [
         (b'torch._C', "Native code loading"),
@@ -248,14 +248,14 @@ class PyTorchAnalyzer:
         (b'__reduce_ex__', "Custom deserialization"),
         (b'torch.jit', "JIT compilation"),
     ]
-    
+
     def __init__(self):
         self.pickle_analyzer = PickleAnalyzer()
-    
+
     def analyze(self, content: bytes) -> List[MaliciousIndicator]:
         """Analyze PyTorch model for security issues"""
         indicators = []
-        
+
         # Check format
         if content.startswith(b'PK\x03\x04'):
             # Modern ZIP-based format
@@ -263,7 +263,7 @@ class PyTorchAnalyzer:
         else:
             # Legacy pickle format - directly analyze
             indicators.extend(self.pickle_analyzer.analyze(content))
-        
+
         # Check for dangerous patterns
         for pattern, description in self.DANGEROUS_PATTERNS:
             if pattern in content:
@@ -272,17 +272,17 @@ class PyTorchAnalyzer:
                     description=f"Contains {description}",
                     confidence=0.5
                 ))
-        
+
         return indicators
-    
+
     def _analyze_zip_pytorch(self, content: bytes) -> List[MaliciousIndicator]:
         """Analyze ZIP-based PyTorch files"""
         indicators = []
-        
+
         try:
             import io
             import zipfile
-            
+
             with zipfile.ZipFile(io.BytesIO(content)) as zf:
                 for name in zf.namelist():
                     # Check for pickle files inside
@@ -295,7 +295,7 @@ class PyTorchAnalyzer:
                             indicators.extend(pkl_indicators)
                         except Exception:
                             pass
-                    
+
                     # Check for suspicious files
                     if name.endswith(('.py', '.pyc', '.so', '.dll')):
                         indicators.append(MaliciousIndicator(
@@ -306,7 +306,7 @@ class PyTorchAnalyzer:
         except Exception:
             # Not a valid ZIP, analyze as raw pickle
             indicators.extend(self.pickle_analyzer.analyze(content))
-        
+
         return indicators
 
 
@@ -319,20 +319,20 @@ class SafetensorsAnalyzer:
     - Unusually large metadata
     - Invalid format indicators
     """
-    
+
     SAFETENSORS_MAGIC = b'safetensors'
-    
+
     def analyze(self, content: bytes) -> List[MaliciousIndicator]:
         """Analyze safetensors file"""
         indicators = []
-        
+
         try:
             # Safetensors format: 8-byte header size + JSON header + tensors
             if len(content) < 8:
                 return indicators
-            
+
             header_size = struct.unpack('<Q', content[:8])[0]
-            
+
             # Check for suspiciously large header (metadata injection)
             if header_size > 10 * 1024 * 1024:  # 10MB header is suspicious
                 indicators.append(MaliciousIndicator(
@@ -340,13 +340,13 @@ class SafetensorsAnalyzer:
                     description=f"Unusually large header ({header_size} bytes) - potential metadata injection",
                     confidence=0.6
                 ))
-            
+
             # Parse header JSON
             if len(content) >= 8 + header_size:
                 header_json = content[8:8+header_size]
                 try:
                     metadata = json.loads(header_json)
-                    
+
                     # Check for suspicious metadata keys
                     if '__metadata__' in metadata:
                         meta = metadata['__metadata__']
@@ -360,7 +360,7 @@ class SafetensorsAnalyzer:
                     pass
         except Exception:
             pass
-        
+
         return indicators
 
 
@@ -374,7 +374,7 @@ class MLModelScanner:
     - HuggingFace model repositories
     - Configuration files with model paths
     """
-    
+
     # Model file extensions and their formats
     MODEL_EXTENSIONS = {
         '.pkl': ModelFormat.PICKLE,
@@ -391,7 +391,7 @@ class MLModelScanner:
         '.model': ModelFormat.UNKNOWN,
         '.weights': ModelFormat.UNKNOWN,
     }
-    
+
     # Common model directories
     MODEL_DIRECTORIES = [
         "/models/",
@@ -409,7 +409,7 @@ class MLModelScanner:
         "/transformers/",
         "/.transformers/",
     ]
-    
+
     # Common model filenames
     MODEL_FILENAMES = [
         "model.pkl",
@@ -434,7 +434,7 @@ class MLModelScanner:
         "model_config.json",
         "training_args.bin",
     ]
-    
+
     # HuggingFace specific paths
     HUGGINGFACE_PATHS = [
         "/config.json",
@@ -448,7 +448,7 @@ class MLModelScanner:
         "/tf_model.h5",
         "/flax_model.msgpack",
     ]
-    
+
     def __init__(
         self,
         timeout: int = 20,
@@ -461,12 +461,12 @@ class MLModelScanner:
         self.download_limit = download_limit
         self.deep_analysis = deep_analysis
         self.semaphore = asyncio.Semaphore(max_concurrent)
-        
+
         # Initialize analyzers
         self.pickle_analyzer = PickleAnalyzer()
         self.pytorch_analyzer = PyTorchAnalyzer()
         self.safetensors_analyzer = SafetensorsAnalyzer()
-    
+
     async def scan(
         self,
         target: str,
@@ -484,29 +484,29 @@ class MLModelScanner:
         """
         import time
         start_time = time.time()
-        
+
         own_session = session is None
         if own_session:
             connector = aiohttp.TCPConnector(ssl=False, limit=self.max_concurrent)
             session = aiohttp.ClientSession(connector=connector, timeout=self.timeout)
-        
+
         try:
             target = self._normalize_url(target)
-            
+
             # Stage 1: Discover model directories
             found_directories = await self._discover_directories(target, session)
-            
+
             # Stage 2: Scan for model files
             exposed_models = await self._scan_for_models(target, session, found_directories)
-            
+
             # Stage 3: Deep analysis of discovered models
             if self.deep_analysis:
                 exposed_models = await self._analyze_models(exposed_models, session)
-            
+
             # Generate result
             total_risk = self._calculate_total_risk(exposed_models)
             recommendations = self._generate_recommendations(exposed_models)
-            
+
             return MLScanResult(
                 target=target,
                 exposed_models=exposed_models,
@@ -515,17 +515,17 @@ class MLModelScanner:
                 recommendations=recommendations,
                 scan_duration=time.time() - start_time
             )
-            
+
         finally:
             if own_session:
                 await session.close()
-    
+
     def _normalize_url(self, url: str) -> str:
         """Normalize URL"""
         if not url.startswith(('http://', 'https://')):
             url = f"https://{url}"
         return url.rstrip('/')
-    
+
     async def _discover_directories(
         self,
         target: str,
@@ -533,19 +533,19 @@ class MLModelScanner:
     ) -> List[str]:
         """Discover accessible model directories"""
         found = []
-        
+
         tasks = []
         for directory in self.MODEL_DIRECTORIES:
             tasks.append(self._check_directory(target, directory, session))
-        
+
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         for directory, result in zip(self.MODEL_DIRECTORIES, results):
             if result is True:
                 found.append(directory)
-        
+
         return found
-    
+
     async def _check_directory(
         self,
         target: str,
@@ -554,7 +554,7 @@ class MLModelScanner:
     ) -> bool:
         """Check if a directory is accessible"""
         url = urljoin(target, directory)
-        
+
         try:
             async with self.semaphore:
                 async with session.get(url) as resp:
@@ -567,9 +567,9 @@ class MLModelScanner:
                             return True
         except Exception:
             pass
-        
+
         return False
-    
+
     async def _scan_for_models(
         self,
         target: str,
@@ -578,35 +578,35 @@ class MLModelScanner:
     ) -> List[ExposedModel]:
         """Scan for model files"""
         exposed = []
-        
+
         # Build paths to check
         paths_to_check = []
-        
+
         # Add common filenames at root and known directories
         for filename in self.MODEL_FILENAMES:
             paths_to_check.append(f"/{filename}")
             for directory in directories:
                 paths_to_check.append(f"{directory}{filename}")
-        
+
         # Add HuggingFace paths
         for hf_path in self.HUGGINGFACE_PATHS:
             paths_to_check.append(hf_path)
             for directory in directories:
                 paths_to_check.append(f"{directory.rstrip('/')}{hf_path}")
-        
+
         # Scan paths
         tasks = []
         for path in set(paths_to_check):
             tasks.append(self._check_model_file(target, path, session))
-        
+
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         for result in results:
             if isinstance(result, ExposedModel):
                 exposed.append(result)
-        
+
         return exposed
-    
+
     async def _check_model_file(
         self,
         target: str,
@@ -615,24 +615,24 @@ class MLModelScanner:
     ) -> Optional[ExposedModel]:
         """Check if a model file exists and get metadata"""
         url = urljoin(target, path)
-        
+
         try:
             async with self.semaphore:
                 # Use HEAD first to check existence and size
                 async with session.head(url) as resp:
                     if resp.status != 200:
                         return None
-                    
+
                     content_length = int(resp.headers.get('content-length', 0))
                     content_type = resp.headers.get('content-type', '')
-                
+
                 # Determine format from extension
                 ext = Path(path).suffix.lower()
                 model_format = self.MODEL_EXTENSIONS.get(ext, ModelFormat.UNKNOWN)
-                
+
                 # Calculate base risk
                 risk_level = self._assess_base_risk(model_format, path)
-                
+
                 return ExposedModel(
                     url=url,
                     path=path,
@@ -646,28 +646,28 @@ class MLModelScanner:
                 )
         except Exception:
             pass
-        
+
         return None
-    
+
     def _assess_base_risk(self, model_format: ModelFormat, path: str) -> ModelRisk:
         """Assess base risk level for a model format"""
         # Formats with RCE potential
         if model_format in [ModelFormat.PICKLE, ModelFormat.PYTORCH, ModelFormat.JOBLIB]:
             return ModelRisk.CRITICAL
-        
+
         # Formats that could have embedded code
         if model_format in [ModelFormat.KERAS, ModelFormat.TENSORFLOW]:
             return ModelRisk.HIGH
-        
+
         # Safer formats
         if model_format == ModelFormat.SAFETENSORS:
             return ModelRisk.LOW
-        
+
         if model_format == ModelFormat.ONNX:
             return ModelRisk.MEDIUM
-        
+
         return ModelRisk.MEDIUM
-    
+
     async def _analyze_models(
         self,
         models: List[ExposedModel],
@@ -681,9 +681,9 @@ class MLModelScanner:
             else:
                 # For large files, only analyze header
                 tasks.append(self._analyze_model_header(model, session))
-        
+
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         analyzed = []
         for model, result in zip(models, results):
             if isinstance(result, list):
@@ -695,9 +695,9 @@ class MLModelScanner:
                     if model.risk_level != ModelRisk.CRITICAL:
                         model.risk_level = ModelRisk.HIGH
             analyzed.append(model)
-        
+
         return analyzed
-    
+
     async def _analyze_single_model(
         self,
         model: ExposedModel,
@@ -705,16 +705,16 @@ class MLModelScanner:
     ) -> List[MaliciousIndicator]:
         """Download and analyze a model file"""
         indicators = []
-        
+
         try:
             async with self.semaphore:
                 async with session.get(model.url) as resp:
                     if resp.status == 200:
                         content = await resp.read()
-                        
+
                         # Hash the content
                         model.content_hash = hashlib.sha256(content).hexdigest()
-                        
+
                         # Analyze based on format
                         if model.format == ModelFormat.PICKLE:
                             indicators = self.pickle_analyzer.analyze(content)
@@ -735,9 +735,9 @@ class MLModelScanner:
                 description=f"Could not analyze: {str(e)}",
                 confidence=0.0
             ))
-        
+
         return indicators
-    
+
     async def _analyze_model_header(
         self,
         model: ExposedModel,
@@ -745,14 +745,14 @@ class MLModelScanner:
     ) -> List[MaliciousIndicator]:
         """Analyze only the header of large files"""
         indicators = []
-        
+
         try:
             headers = {'Range': 'bytes=0-10240'}  # First 10KB
             async with self.semaphore:
                 async with session.get(model.url, headers=headers) as resp:
                     if resp.status in [200, 206]:
                         content = await resp.read()
-                        
+
                         # Quick check for dangerous patterns
                         if model.format in [ModelFormat.PICKLE, ModelFormat.PYTORCH]:
                             # Check for dangerous opcodes in header
@@ -766,14 +766,14 @@ class MLModelScanner:
                                     break
         except Exception:
             pass
-        
+
         return indicators
-    
+
     def _calculate_total_risk(self, models: List[ExposedModel]) -> float:
         """Calculate aggregate risk score"""
         if not models:
             return 0.0
-        
+
         risk_values = {
             ModelRisk.CRITICAL: 10.0,
             ModelRisk.HIGH: 7.0,
@@ -781,51 +781,51 @@ class MLModelScanner:
             ModelRisk.LOW: 2.0,
             ModelRisk.INFO: 0.5,
         }
-        
+
         # Weighted sum with diminishing returns
         total = 0.0
         for i, model in enumerate(sorted(models, key=lambda m: risk_values.get(m.risk_level, 0), reverse=True)):
             weight = 1.0 / (1 + i * 0.3)  # Diminishing weight for subsequent findings
             total += risk_values.get(model.risk_level, 0) * weight
-        
+
         return min(total, 10.0)
-    
+
     def _generate_recommendations(self, models: List[ExposedModel]) -> List[str]:
         """Generate security recommendations"""
         recommendations = []
-        
+
         if not models:
             return ["No exposed ML models found - maintain current security posture"]
-        
+
         has_pickle = any(m.format in [ModelFormat.PICKLE, ModelFormat.PYTORCH, ModelFormat.JOBLIB] for m in models)
         has_critical = any(m.risk_level == ModelRisk.CRITICAL for m in models)
         has_hf = any('huggingface' in m.path.lower() or 'transformers' in m.path.lower() for m in models)
-        
+
         if has_critical:
             recommendations.append("CRITICAL: Remove exposed pickle/PyTorch model files immediately - they can execute arbitrary code on load")
-        
+
         if has_pickle:
             recommendations.extend([
                 "Migrate from pickle to safetensors format for model serialization",
                 "Implement model signing and verification before loading",
                 "Never load models from untrusted sources using torch.load() or pickle.load()",
             ])
-        
+
         if has_hf:
             recommendations.extend([
                 "Restrict access to HuggingFace cache directories",
                 "Use private model repositories with access controls",
                 "Verify model integrity using HuggingFace Hub's commit hashes",
             ])
-        
+
         recommendations.extend([
             "Configure web server to deny access to model directories",
             "Implement Content-Security-Policy to prevent unauthorized model downloads",
             "Audit model provenance and maintain SBOM for ML dependencies",
         ])
-        
+
         return recommendations
-    
+
     def generate_report(self, result: MLScanResult) -> str:
         """Generate human-readable report"""
         lines = [
@@ -840,13 +840,13 @@ class MLModelScanner:
             f"Model Directories Found: {len(result.model_directories)}",
             "",
         ]
-        
+
         if result.model_directories:
             lines.append("ACCESSIBLE DIRECTORIES:")
             for directory in result.model_directories:
                 lines.append(f"  📁 {directory}")
             lines.append("")
-        
+
         if result.exposed_models:
             lines.append("EXPOSED MODELS:")
             for model in sorted(result.exposed_models, key=lambda m: m.risk_level.value):
@@ -857,22 +857,22 @@ class MLModelScanner:
                     ModelRisk.LOW: "🟢",
                     ModelRisk.INFO: "⚪",
                 }.get(model.risk_level, "⚪")
-                
+
                 lines.append(f"  {risk_emoji} [{model.risk_level.value.upper()}] {model.path}")
                 lines.append(f"     Format: {model.format.value} | Size: {model.size:,} bytes")
-                
+
                 if model.indicators:
-                    lines.append(f"     Indicators:")
+                    lines.append("     Indicators:")
                     for ind in model.indicators[:3]:
                         lines.append(f"       ⚠ {ind.description} (confidence: {ind.confidence:.0%})")
                 lines.append("")
-        
+
         if result.recommendations:
             lines.append("RECOMMENDATIONS:")
             for rec in result.recommendations:
                 lines.append(f"  → {rec}")
             lines.append("")
-        
+
         lines.append("=" * 70)
         return "\n".join(lines)
 
@@ -880,14 +880,14 @@ class MLModelScanner:
 async def main():
     """CLI entry point"""
     import sys
-    
+
     if len(sys.argv) < 2:
         print("Usage: python ml_model_scanner.py <target_url>")
         sys.exit(1)
-    
+
     target = sys.argv[1]
     scanner = MLModelScanner(deep_analysis=True)
-    
+
     print(f"[*] Scanning {target} for exposed ML models...")
     result = await scanner.scan(target)
     print(scanner.generate_report(result))

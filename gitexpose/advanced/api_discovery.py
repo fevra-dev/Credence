@@ -13,14 +13,15 @@ in exposed API infrastructure.
 """
 
 import asyncio
-import aiohttp
-import re
 import json
 import logging
-from typing import Dict, List, Optional, Set, Tuple
+import re
 from dataclasses import dataclass, field
 from enum import Enum
-from urllib.parse import urljoin, urlparse
+from typing import Dict, List, Optional, Set
+from urllib.parse import urljoin
+
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +86,7 @@ class APIDiscovery:
     - Authentication bypass detection
     - Sensitive operation identification
     """
-    
+
     # Common API paths to probe
     API_PATHS = {
         APIType.GRAPHQL: [
@@ -101,7 +102,7 @@ class APIDiscovery:
             '/playground',
             '/altair',
         ],
-        
+
         APIType.OPENAPI: [
             '/openapi.json',
             '/openapi.yaml',
@@ -111,7 +112,7 @@ class APIDiscovery:
             '/v3/api-docs',
             '/v2/api-docs',
         ],
-        
+
         APIType.SWAGGER: [
             '/swagger.json',
             '/swagger.yaml',
@@ -125,7 +126,7 @@ class APIDiscovery:
             '/documentation',
             '/redoc',
         ],
-        
+
         APIType.REST: [
             '/api',
             '/api/',
@@ -137,7 +138,7 @@ class APIDiscovery:
             '/rest',
             '/rest/api',
         ],
-        
+
         APIType.WEBSOCKET: [
             '/ws',
             '/websocket',
@@ -147,7 +148,7 @@ class APIDiscovery:
             '/live',
         ],
     }
-    
+
     # GraphQL introspection query
     GRAPHQL_INTROSPECTION_QUERY = """
     query IntrospectionQuery {
@@ -173,12 +174,12 @@ class APIDiscovery:
         }
     }
     """
-    
+
     # Simplified introspection for quick check
     GRAPHQL_QUICK_INTROSPECTION = """
     query { __typename }
     """
-    
+
     # Sensitive GraphQL operation patterns
     SENSITIVE_GRAPHQL_OPERATIONS = [
         'createUser', 'deleteUser', 'updateUser', 'registerUser',
@@ -190,7 +191,7 @@ class APIDiscovery:
         'debug', 'internal', 'admin', 'system',
         'executeQuery', 'runScript', 'evaluate',
     ]
-    
+
     # Sensitive REST endpoint patterns
     SENSITIVE_REST_PATTERNS = [
         r'/admin', r'/debug', r'/internal', r'/system',
@@ -225,7 +226,7 @@ class APIDiscovery:
         self.max_concurrent = max_concurrent
         self.full_introspection = full_introspection
         self.check_authentication = check_authentication
-        
+
         self._owns_session = session is None
         self._checked_urls: Set[str] = set()
 
@@ -260,22 +261,22 @@ class APIDiscovery:
         findings = []
         semaphore = asyncio.Semaphore(self.max_concurrent)
         tasks = []
-        
+
         # Generate all paths to check
         for api_type, paths in self.API_PATHS.items():
             for path in paths:
                 url = urljoin(target_url.rstrip('/'), path)
                 tasks.append(self._check_endpoint(url, api_type, semaphore))
-        
+
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         for result in results:
             if isinstance(result, APIFinding):
                 findings.append(result)
-        
+
         # Deduplicate and merge findings
         findings = self._deduplicate_findings(findings)
-        
+
         logger.info(f"Discovered {len(findings)} API endpoints")
         return findings
 
@@ -286,11 +287,11 @@ class APIDiscovery:
         semaphore: asyncio.Semaphore
     ) -> Optional[APIFinding]:
         """Check a single API endpoint."""
-        
+
         if url in self._checked_urls:
             return None
         self._checked_urls.add(url)
-        
+
         async with semaphore:
             try:
                 if api_type == APIType.GRAPHQL:
@@ -301,80 +302,80 @@ class APIDiscovery:
                     return await self._check_rest(url)
                 elif api_type == APIType.WEBSOCKET:
                     return await self._check_websocket(url)
-                    
+
             except asyncio.TimeoutError:
                 logger.debug(f"Timeout checking {url}")
             except Exception as e:
                 logger.debug(f"Error checking {url}: {e}")
-        
+
         return None
 
     async def _check_graphql(self, url: str) -> Optional[APIFinding]:
         """Check for GraphQL endpoint with introspection."""
-        
+
         # First, quick check if GraphQL endpoint exists
         try:
             quick_query = {"query": self.GRAPHQL_QUICK_INTROSPECTION}
-            
+
             async with self.session.post(url, json=quick_query, ssl=False) as resp:
                 if resp.status not in (200, 400):  # GraphQL often returns 400 for bad queries
                     return None
-                
+
                 body = await resp.text()
-                
+
                 # Check if this looks like GraphQL response
                 if '__typename' not in body and 'errors' not in body.lower():
                     return None
         except Exception:
             return None
-        
+
         # Run full introspection if enabled
         security_issues = [SecurityIssue.INTROSPECTION_ENABLED.value]
         types_exposed = []
         queries = []
         mutations = []
-        
+
         if self.full_introspection:
             try:
                 intro_query = {"query": self.GRAPHQL_INTROSPECTION_QUERY}
-                
+
                 async with self.session.post(url, json=intro_query, ssl=False) as resp:
                     if resp.status == 200:
                         data = await resp.json()
                         schema = data.get('data', {}).get('__schema', {})
-                        
+
                         # Extract types
                         for t in schema.get('types', []):
                             type_name = t.get('name', '')
                             if not type_name.startswith('__'):
                                 types_exposed.append(type_name)
-                                
+
                                 # Check for sensitive operations
                                 for field in t.get('fields', []) or []:
                                     field_name = field.get('name', '')
-                                    
+
                                     if t.get('name') == schema.get('queryType', {}).get('name'):
                                         queries.append(field_name)
                                     elif t.get('name') == schema.get('mutationType', {}).get('name'):
                                         mutations.append(field_name)
-                                        
+
                                         # Check for sensitive mutations
-                                        if any(s.lower() in field_name.lower() 
+                                        if any(s.lower() in field_name.lower()
                                                for s in self.SENSITIVE_GRAPHQL_OPERATIONS):
                                             security_issues.append(
                                                 f"sensitive_mutation:{field_name}"
                                             )
-                        
+
             except Exception as e:
                 logger.debug(f"Error during introspection: {e}")
-        
+
         # Check for authentication
         if self.check_authentication:
             if await self._check_no_auth(url, 'graphql'):
                 security_issues.append(SecurityIssue.NO_AUTHENTICATION.value)
-        
+
         severity = self._calculate_graphql_severity(security_issues, mutations)
-        
+
         return APIFinding(
             api_type=APIType.GRAPHQL,
             url=url,
@@ -397,15 +398,15 @@ class APIDiscovery:
         api_type: APIType
     ) -> Optional[APIFinding]:
         """Check for OpenAPI/Swagger specification."""
-        
+
         try:
             async with self.session.get(url, ssl=False) as resp:
                 if resp.status != 200:
                     return None
-                
+
                 content_type = resp.headers.get('Content-Type', '')
                 body = await resp.text()
-                
+
                 # Parse spec
                 spec = None
                 try:
@@ -420,18 +421,18 @@ class APIDiscovery:
                             pass
                 except Exception:
                     return None
-                
+
                 if not spec:
                     return None
-                
+
                 # Validate it's an OpenAPI spec
                 if not any(k in spec for k in ['swagger', 'openapi', 'paths']):
                     return None
-                
+
                 # Extract endpoints
                 endpoints = []
                 security_issues = []
-                
+
                 paths = spec.get('paths', {})
                 for path, methods in paths.items():
                     if isinstance(methods, dict):
@@ -443,27 +444,27 @@ class APIDiscovery:
                                     description=details.get('summary', ''),
                                     deprecated=details.get('deprecated', False),
                                 )
-                                
+
                                 # Check for auth
                                 if not details.get('security'):
                                     endpoint.authentication = 'none'
-                                
+
                                 endpoints.append(endpoint)
-                                
+
                                 # Check for sensitive paths
                                 if any(re.search(p, path) for p in self.SENSITIVE_REST_PATTERNS):
                                     security_issues.append(f"sensitive_endpoint:{path}")
-                
+
                 # Check global security
                 if not spec.get('security') and not spec.get('securityDefinitions'):
                     security_issues.append(SecurityIssue.NO_AUTHENTICATION.value)
-                
+
                 # Check for internal/debug endpoints
                 if any('/debug' in p or '/internal' in p or '/admin' in p for p in paths):
                     security_issues.append(SecurityIssue.INTERNAL_ENDPOINT.value)
-                
+
                 severity = self._calculate_openapi_severity(endpoints, security_issues)
-                
+
                 return APIFinding(
                     api_type=api_type,
                     url=url,
@@ -476,34 +477,34 @@ class APIDiscovery:
                         'endpoints_count': len(endpoints),
                     }
                 )
-                
+
         except Exception as e:
             logger.debug(f"Error checking OpenAPI at {url}: {e}")
-        
+
         return None
 
     async def _check_rest(self, url: str) -> Optional[APIFinding]:
         """Check for REST API endpoints."""
-        
+
         try:
             # Check OPTIONS for CORS and methods
             async with self.session.options(url, ssl=False) as resp:
                 if resp.status in (200, 204):
                     security_issues = []
-                    
+
                     # Check CORS
                     cors_origin = resp.headers.get('Access-Control-Allow-Origin', '')
                     if cors_origin == '*':
                         security_issues.append(SecurityIssue.CORS_MISCONFIGURED.value)
-                    
+
                     # Check rate limiting
-                    if not any(h in resp.headers for h in 
+                    if not any(h in resp.headers for h in
                                ['X-RateLimit-Limit', 'RateLimit-Limit', 'X-Rate-Limit']):
                         security_issues.append(SecurityIssue.RATE_LIMIT_ABSENT.value)
-                    
+
                     # Check allowed methods
                     methods = resp.headers.get('Access-Control-Allow-Methods', '')
-                    
+
                     if security_issues:
                         return APIFinding(
                             api_type=APIType.REST,
@@ -515,28 +516,28 @@ class APIDiscovery:
                                 'allowed_methods': methods,
                             }
                         )
-                        
+
         except Exception:
             pass
-        
+
         # Try GET request
         try:
             async with self.session.get(url, ssl=False) as resp:
                 if resp.status == 200:
                     body = await resp.text()
-                    
+
                     # Check if it looks like API response
                     if body.strip().startswith(('{', '[')):
                         try:
                             data = json.loads(body)
-                            
+
                             # Check for verbose errors or debug info
                             security_issues = []
                             if 'debug' in str(data).lower():
                                 security_issues.append(SecurityIssue.DEBUG_MODE.value)
                             if 'error' in data and 'trace' in str(data).lower():
                                 security_issues.append(SecurityIssue.VERBOSE_ERRORS.value)
-                            
+
                             return APIFinding(
                                 api_type=APIType.REST,
                                 url=url,
@@ -546,23 +547,23 @@ class APIDiscovery:
                             )
                         except json.JSONDecodeError:
                             pass
-                            
+
         except Exception:
             pass
-        
+
         return None
 
     async def _check_websocket(self, url: str) -> Optional[APIFinding]:
         """Check for WebSocket endpoints."""
-        
+
         # Convert HTTP URL to WebSocket URL
         ws_url = url.replace('http://', 'ws://').replace('https://', 'wss://')
-        
+
         try:
             async with self.session.ws_connect(ws_url, ssl=False, timeout=5) as ws:
                 # WebSocket connected successfully
                 await ws.close()
-                
+
                 return APIFinding(
                     api_type=APIType.WEBSOCKET,
                     url=url,
@@ -570,15 +571,15 @@ class APIDiscovery:
                     security_issues=[],
                     metadata={'websocket_url': ws_url}
                 )
-                
+
         except Exception:
             pass
-        
+
         return None
 
     async def _check_no_auth(self, url: str, api_type: str) -> bool:
         """Check if endpoint allows unauthenticated access."""
-        
+
         if api_type == 'graphql':
             # Try a simple query
             query = {"query": "{ __typename }"}
@@ -589,7 +590,7 @@ class APIDiscovery:
                         return 'data' in data
             except Exception:
                 pass
-        
+
         return False
 
     def _calculate_graphql_severity(
@@ -598,22 +599,22 @@ class APIDiscovery:
         mutations: List[str]
     ) -> str:
         """Calculate severity for GraphQL finding."""
-        
+
         # Critical: Sensitive mutations exposed
         sensitive_mutations = [
             m for m in mutations
             if any(s.lower() in m.lower() for s in self.SENSITIVE_GRAPHQL_OPERATIONS)
         ]
-        
+
         if sensitive_mutations and SecurityIssue.NO_AUTHENTICATION.value in issues:
             return 'critical'
-        
+
         if sensitive_mutations:
             return 'high'
-        
+
         if SecurityIssue.INTROSPECTION_ENABLED.value in issues:
             return 'high'
-        
+
         return 'medium'
 
     def _calculate_openapi_severity(
@@ -622,41 +623,41 @@ class APIDiscovery:
         issues: List[str]
     ) -> str:
         """Calculate severity for OpenAPI finding."""
-        
+
         # Critical: Unauthenticated admin/sensitive endpoints
         if SecurityIssue.NO_AUTHENTICATION.value in issues:
             if SecurityIssue.INTERNAL_ENDPOINT.value in issues:
                 return 'critical'
             return 'high'
-        
+
         if SecurityIssue.INTERNAL_ENDPOINT.value in issues:
             return 'high'
-        
+
         # High: Many endpoints exposed
         if len(endpoints) > 50:
             return 'high'
-        
+
         return 'medium'
 
     def _deduplicate_findings(self, findings: List[APIFinding]) -> List[APIFinding]:
         """Deduplicate findings by URL."""
         seen = set()
         unique = []
-        
+
         for finding in findings:
             if finding.url not in seen:
                 seen.add(finding.url)
                 unique.append(finding)
-        
+
         return unique
 
 
 def generate_api_report(findings: List[APIFinding]) -> str:
     """Generate a formatted report of API findings."""
-    
+
     if not findings:
         return "No exposed API endpoints detected.\n"
-    
+
     lines = [
         "=" * 80,
         "API DISCOVERY REPORT",
@@ -664,7 +665,7 @@ def generate_api_report(findings: List[APIFinding]) -> str:
         f"\nTotal API endpoints discovered: {len(findings)}",
         ""
     ]
-    
+
     # Group by type
     by_type = {}
     for finding in findings:
@@ -672,11 +673,11 @@ def generate_api_report(findings: List[APIFinding]) -> str:
         if api_type not in by_type:
             by_type[api_type] = []
         by_type[api_type].append(finding)
-    
+
     for api_type, type_findings in sorted(by_type.items()):
         lines.append(f"\n[{api_type.upper()}] - {len(type_findings)} endpoints")
         lines.append("-" * 60)
-        
+
         for finding in type_findings:
             severity_icon = {
                 'critical': '🔴',
@@ -684,31 +685,31 @@ def generate_api_report(findings: List[APIFinding]) -> str:
                 'medium': '🟡',
                 'low': '🔵'
             }.get(finding.severity, '⚪')
-            
+
             lines.append(f"\n  {severity_icon} {finding.url}")
             lines.append(f"     Severity: {finding.severity.upper()}")
-            
+
             if finding.security_issues:
                 lines.append(f"     ⚠️  Issues: {', '.join(finding.security_issues[:5])}")
-            
+
             if finding.types_exposed:
                 lines.append(f"     Types exposed: {len(finding.types_exposed)}")
                 lines.append(f"       {', '.join(finding.types_exposed[:10])}")
                 if len(finding.types_exposed) > 10:
                     lines.append(f"       ... and {len(finding.types_exposed) - 10} more")
-            
+
             if finding.mutations_found:
                 lines.append(f"     Mutations: {len(finding.mutations_found)}")
                 lines.append(f"       {', '.join(finding.mutations_found[:10])}")
-            
+
             if finding.queries_found:
                 lines.append(f"     Queries: {len(finding.queries_found)}")
-            
+
             if finding.endpoints:
                 lines.append(f"     REST Endpoints: {len(finding.endpoints)}")
                 for ep in finding.endpoints[:5]:
                     auth_status = "🔓" if ep.authentication == 'none' else "🔒"
                     lines.append(f"       {auth_status} {ep.method} {ep.path}")
-    
+
     lines.append("\n" + "=" * 80)
     return "\n".join(lines)

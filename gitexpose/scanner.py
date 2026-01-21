@@ -5,18 +5,19 @@ Handles concurrent scanning of multiple targets and paths using aiohttp.
 """
 
 import asyncio
+import logging
+from datetime import datetime
+from typing import List, Optional
+
 import aiohttp
 from aiohttp import ClientTimeout, TCPConnector
-from typing import List, Optional
-from datetime import datetime
-import logging
 
 from .models import (
     PathDefinition,
-    ScanResult,
-    TargetReport,
     ScanReport,
+    ScanResult,
     Severity,
+    TargetReport,
 )
 from .paths import get_all_paths
 from .signatures import validate_response

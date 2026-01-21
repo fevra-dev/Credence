@@ -11,8 +11,8 @@ Each path has:
 """
 
 from typing import List
-from .models import PathDefinition, Category, Severity
 
+from .models import Category, PathDefinition, Severity
 
 # ============================================================
 # SENSITIVE PATHS DATABASE

@@ -4,11 +4,11 @@ Secret extraction and validation.
 Extracts credentials and secrets from responses, then validates them.
 """
 
-import re
-import asyncio
-import aiohttp
-from typing import Dict, List, Set, Optional
 import logging
+import re
+from typing import Dict, List, Optional, Set
+
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -56,23 +56,23 @@ class SecretExtractor:
         for secret_type, pattern in self.PATTERNS.items():
             try:
                 matches = re.finditer(pattern, content, re.MULTILINE | re.IGNORECASE)
-                
+
                 for match in matches:
                     secret_value = match.group()
-                    
+
                     # Deduplicate
                     if secret_value in seen:
                         continue
                     seen.add(secret_value)
-                    
+
                     # Get line number
                     line_num = content[:match.start()].count('\n') + 1
-                    
+
                     # Get context
                     start = max(0, match.start() - 40)
                     end = min(len(content), match.end() + 40)
                     context = content[start:end].replace('\n', ' ')
-                    
+
                     secret_info = {
                         'type': secret_type,
                         'value': self._mask_value(secret_value),
@@ -82,14 +82,14 @@ class SecretExtractor:
                         'context': context,
                         'validated': None
                     }
-                    
+
                     # Validate if requested
                     if self.validate and self.validator:
                         is_valid = await self.validator.validate(secret_type, secret_value)
                         secret_info['validated'] = is_valid
-                    
+
                     secrets.append(secret_info)
-                    
+
             except Exception as e:
                 logger.debug(f"Error extracting {secret_type}: {e}")
 
@@ -196,7 +196,7 @@ class SecretExporter:
             if 'value_full' in export_secret:
                 del export_secret['value_full']
             export_secrets.append(export_secret)
-        
+
         return json.dumps(export_secrets, indent=2)
 
     @staticmethod
@@ -204,13 +204,13 @@ class SecretExporter:
         """Export to CSV"""
         import csv
         import io
-        
+
         output = io.StringIO()
         writer = csv.writer(output)
-        
+
         # Header
         writer.writerow(['Type', 'Value', 'Source', 'Line', 'Validated', 'Context'])
-        
+
         # Data
         for secret in secrets:
             writer.writerow([
@@ -221,7 +221,7 @@ class SecretExporter:
                 secret.get('validated', 'N/A'),
                 secret['context'][:100]
             ])
-        
+
         return output.getvalue()
 
     @staticmethod
@@ -248,16 +248,16 @@ class SecretExporter:
         for secret_type, items in sorted(by_type.items()):
             lines.append(f"## {secret_type.replace('_', ' ').title()} ({len(items)})")
             lines.append("")
-            
+
             for item in items:
                 lines.append(f"- **Value:** `{item['value']}`")
                 lines.append(f"  - **Source:** {item['source']}")
                 lines.append(f"  - **Line:** {item['line']}")
-                
+
                 if item.get('validated') is not None:
                     status = "✅ Valid" if item['validated'] else "❌ Invalid"
                     lines.append(f"  - **Status:** {status}")
-                
+
                 lines.append("")
 
         return "\n".join(lines)

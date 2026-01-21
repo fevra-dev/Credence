@@ -5,13 +5,14 @@ Downloads exposed .git directories and reconstructs the full repository.
 """
 
 import asyncio
-import aiohttp
-import aiofiles
-from pathlib import Path
-from typing import Set, Dict, List, Optional
 import logging
-import zlib
 import re
+import zlib
+from pathlib import Path
+from typing import Dict, List, Set
+
+import aiofiles
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ class GitDumper:
             Dict with results including success status, files downloaded, etc.
         """
         logger.info(f"Starting git dump for {self.base_url}")
-        
+
         results = {
             'success': False,
             'files_downloaded': 0,
@@ -139,10 +140,10 @@ class GitDumper:
                 if resp.status == 200:
                     local_path.parent.mkdir(parents=True, exist_ok=True)
                     content = await resp.read()
-                    
+
                     async with aiofiles.open(local_path, 'wb') as f:
                         await f.write(content)
-                    
+
                     self.downloaded.add(identifier)
                     logger.debug(f"Downloaded: {identifier}")
                     return True
@@ -150,12 +151,12 @@ class GitDumper:
                     logger.debug(f"Not found: {identifier}")
                 else:
                     logger.debug(f"Failed {resp.status}: {identifier}")
-                    
+
         except asyncio.TimeoutError:
             logger.debug(f"Timeout: {identifier}")
         except Exception as e:
             logger.debug(f"Error downloading {identifier}: {e}")
-        
+
         self.failed.append(identifier)
         return False
 
@@ -193,7 +194,7 @@ class GitDumper:
                 line = line.strip()
                 if line.startswith('#') or not line:
                     continue
-                
+
                 parts = line.split()
                 if len(parts) >= 1:
                     sha = parts[0]
@@ -214,7 +215,7 @@ class GitDumper:
                 if ref_file.is_file():
                     async with aiofiles.open(ref_file, 'r') as f:
                         content = await f.read()
-                    
+
                     sha = content.strip()
                     if re.match(r'^[a-f0-9]{40}$', sha):
                         await self.queue.put(f"objects/{sha[:2]}/{sha[2:]}")
@@ -234,7 +235,7 @@ class GitDumper:
         # Cancel workers
         for worker in workers:
             worker.cancel()
-        
+
         # Wait for workers to finish
         await asyncio.gather(*workers, return_exceptions=True)
 
@@ -243,7 +244,7 @@ class GitDumper:
         while True:
             try:
                 obj_path = await self.queue.get()
-                
+
                 url = f"{self.base_url}/.git/{obj_path}"
                 local_path = self.output_dir / '.git' / obj_path
 
@@ -254,7 +255,7 @@ class GitDumper:
                     await self._parse_object(local_path)
 
                 self.queue.task_done()
-                
+
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -278,7 +279,7 @@ class GitDumper:
             for match in re.finditer(hex_pattern, decompressed):
                 sha = match.group().decode()
                 obj_ref = f"objects/{sha[:2]}/{sha[2:]}"
-                
+
                 # Only add if not already downloaded/queued
                 if obj_ref not in self.downloaded:
                     await self.queue.put(obj_ref)
@@ -290,21 +291,21 @@ class GitDumper:
         """Attempt to reconstruct working directory from .git"""
         try:
             import subprocess
-            
+
             result = subprocess.run(
                 ['git', 'checkout', '--force', '.'],
                 cwd=str(self.output_dir),
                 capture_output=True,
                 timeout=30
             )
-            
+
             if result.returncode == 0:
                 logger.info("Repository reconstructed successfully")
                 return True
             else:
                 logger.warning(f"Git checkout failed: {result.stderr.decode()}")
                 return False
-                
+
         except subprocess.TimeoutExpired:
             logger.warning("Git checkout timed out")
             return False

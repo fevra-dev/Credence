@@ -2,6 +2,7 @@
 
 import csv
 import io
+
 from ..models import ScanReport
 from .base import BaseReporter
 

@@ -6,14 +6,15 @@ Usage:
     gitexpose -f targets.txt -o json --out-file results.json
 """
 
-import sys
-import click
 import logging
-from typing import Optional, List
+import sys
+from typing import List, Optional
+
+import click
 
 from . import __version__
+from .reporters import ConsoleReporter, CSVReporter, JSONReporter
 from .scanner import GitExposeScanner
-from .reporters import ConsoleReporter, JSONReporter, CSVReporter
 
 
 def setup_logging(verbose: bool) -> None:

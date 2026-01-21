@@ -2,8 +2,8 @@
 
 from datetime import datetime
 from pathlib import Path
-from typing import List
-from ..models import ScanReport, TargetReport, ScanResult, Severity
+
+from ..models import ScanReport
 
 
 class HTMLReporter:
@@ -11,7 +11,7 @@ class HTMLReporter:
 
     def generate(self, report: ScanReport, output_file: Path = None) -> str:
         """Generate HTML report"""
-        
+
         # Calculate severity counts
         severity_counts = {
             'critical': report.critical_count,
@@ -39,7 +39,7 @@ class HTMLReporter:
 
     def _render_template(self, report: ScanReport, severity_counts: dict, findings: list) -> str:
         """Render the HTML template"""
-        
+
         return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -342,7 +342,7 @@ class HTMLReporter:
         """Render the chart section"""
         if sum(severity_counts.values()) == 0:
             return ""
-        
+
         return """
             <div class="chart-container">
                 <canvas id="severityChart" height="100"></canvas>
@@ -353,7 +353,7 @@ class HTMLReporter:
         """Render the Chart.js script"""
         if sum(severity_counts.values()) == 0:
             return ""
-        
+
         return f"""
         const ctx = document.getElementById('severityChart');
         if (ctx) {{
@@ -415,13 +415,13 @@ class HTMLReporter:
                 </div>
             </div>
             """
-        
+
         findings_html = ['<div class="findings-section">', '<h2>Security Findings</h2>']
-        
+
         for item in findings:
             target = item['target']
             finding = item['finding']
-            
+
             findings_html.append(f"""
             <div class="finding {finding.severity.value.lower()}">
                 <div class="finding-header">
@@ -444,6 +444,6 @@ class HTMLReporter:
                 </div>
             </div>
             """)
-        
+
         findings_html.append('</div>')
         return '\n'.join(findings_html)

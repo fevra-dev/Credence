@@ -13,13 +13,14 @@ or reference sensitive credentials and reveal attack surfaces.
 """
 
 import asyncio
-import aiohttp
-import re
 import logging
-from typing import Dict, List, Optional, Set
+import re
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Dict, List, Optional
 from urllib.parse import urljoin
+
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +68,7 @@ class CICDScanner:
     - Discover internal service endpoints
     - Identify potential attack vectors
     """
-    
+
     # CI/CD configuration paths to scan
     CICD_PATHS = {
         # GitHub Actions
@@ -88,7 +89,7 @@ class CICDScanner:
             '.github/dependabot.yml',
             '.github/CODEOWNERS',
         ],
-        
+
         # GitLab CI
         CICDPlatform.GITLAB_CI: [
             '.gitlab-ci.yml',
@@ -98,7 +99,7 @@ class CICDScanner:
             '.gitlab/ci/build.yml',
             '.gitlab/ci/deploy.yml',
         ],
-        
+
         # Jenkins
         CICDPlatform.JENKINS: [
             'Jenkinsfile',
@@ -108,21 +109,21 @@ class CICDScanner:
             'jenkins.groovy',
             'pipeline.groovy',
         ],
-        
+
         # CircleCI
         CICDPlatform.CIRCLECI: [
             '.circleci/config.yml',
             '.circleci/config.yaml',
             'circle.yml',
         ],
-        
+
         # Travis CI
         CICDPlatform.TRAVIS_CI: [
             '.travis.yml',
             '.travis.yaml',
             'travis.yml',
         ],
-        
+
         # Azure DevOps
         CICDPlatform.AZURE_DEVOPS: [
             'azure-pipelines.yml',
@@ -132,41 +133,41 @@ class CICDScanner:
             '.azure-pipelines/cd.yml',
             'azure-pipelines-pr.yml',
         ],
-        
+
         # Bitbucket Pipelines
         CICDPlatform.BITBUCKET_PIPELINES: [
             'bitbucket-pipelines.yml',
             'bitbucket-pipelines.yaml',
         ],
-        
+
         # Drone CI
         CICDPlatform.DRONE: [
             '.drone.yml',
             '.drone.yaml',
             'drone.yml',
         ],
-        
+
         # BuildKite
         CICDPlatform.BUILDKITE: [
             '.buildkite/pipeline.yml',
             '.buildkite/pipeline.yaml',
             'buildkite.yml',
         ],
-        
+
         # ArgoCD
         CICDPlatform.ARGO_CD: [
             'argocd/application.yaml',
             '.argocd/application.yaml',
             'argocd-app.yaml',
         ],
-        
+
         # Tekton
         CICDPlatform.TEKTON: [
             'tekton/pipeline.yaml',
             '.tekton/pipeline.yaml',
         ],
     }
-    
+
     # Patterns indicating secrets
     SECRET_PATTERNS = [
         r'\$\{\{\s*secrets\.([A-Z_]+)\s*\}\}',  # GitHub Actions
@@ -189,7 +190,7 @@ class CICDScanner:
         r'FIREBASE_TOKEN',
         r'SLACK_WEBHOOK',
     ]
-    
+
     # Patterns indicating cloud services
     CLOUD_PATTERNS = {
         'aws': [r'aws', r'ecr\.', r's3:', r'arn:aws', r'amazonaws\.com'],
@@ -203,7 +204,7 @@ class CICDScanner:
         'netlify': [r'netlify', r'\.netlify\.'],
         'digitalocean': [r'digitalocean', r'doctl', r'\.digitalocean\.'],
     }
-    
+
     # Patterns indicating internal services/endpoints
     SERVICE_PATTERNS = [
         r'https?://(?:internal|staging|dev|test|api|backend)[a-zA-Z0-9.-]*\.[a-z]+',
@@ -214,7 +215,7 @@ class CICDScanner:
         r'[a-zA-Z0-9-]+\.local',
         r'[a-zA-Z0-9-]+\.svc\.cluster\.local',
     ]
-    
+
     # Attack vectors to identify
     ATTACK_VECTORS = {
         'command_injection': [
@@ -268,7 +269,7 @@ class CICDScanner:
         self.timeout = timeout
         self.max_concurrent = max_concurrent
         self.analyze_content = analyze_content
-        
+
         self._owns_session = session is None
 
     async def __aenter__(self):
@@ -298,19 +299,19 @@ class CICDScanner:
         findings = []
         semaphore = asyncio.Semaphore(self.max_concurrent)
         tasks = []
-        
+
         # Generate all paths to check
         for platform, paths in self.CICD_PATHS.items():
             for path in paths:
                 url = urljoin(target_url.rstrip('/') + '/', path)
                 tasks.append(self._check_path(url, path, platform, semaphore))
-        
+
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         for result in results:
             if isinstance(result, CICDFinding):
                 findings.append(result)
-        
+
         logger.info(f"Found {len(findings)} CI/CD configurations")
         return findings
 
@@ -322,33 +323,33 @@ class CICDScanner:
         semaphore: asyncio.Semaphore
     ) -> Optional[CICDFinding]:
         """Check a single CI/CD path."""
-        
+
         async with semaphore:
             try:
                 async with self.session.get(url, ssl=False) as resp:
                     if resp.status != 200:
                         return None
-                    
+
                     content = await resp.text()
-                    
+
                     # Validate content looks like CI/CD config
                     if not self._validate_cicd_content(content, platform):
                         return None
-                    
+
                     # Analyze content if enabled
                     secrets = []
                     services = []
                     clouds = []
                     vectors = []
-                    
+
                     if self.analyze_content:
                         secrets = self._extract_secrets(content)
                         services = self._extract_services(content)
                         clouds = self._extract_cloud_providers(content)
                         vectors = self._extract_attack_vectors(content)
-                    
+
                     severity = self._calculate_severity(secrets, services, vectors)
-                    
+
                     return CICDFinding(
                         platform=platform,
                         file_path=path,
@@ -364,19 +365,19 @@ class CICDScanner:
                             'content_type': resp.headers.get('Content-Type', '')
                         }
                     )
-                    
+
             except asyncio.TimeoutError:
                 logger.debug(f"Timeout checking {url}")
             except Exception as e:
                 logger.debug(f"Error checking {url}: {e}")
-        
+
         return None
 
     def _validate_cicd_content(self, content: str, platform: CICDPlatform) -> bool:
         """Validate that content looks like valid CI/CD config."""
-        
+
         content_lower = content.lower()
-        
+
         # Platform-specific validation
         validators = {
             CICDPlatform.GITHUB_ACTIONS: [
@@ -407,9 +408,9 @@ class CICDScanner:
                 'steps:', 'command:', 'plugins:', 'agents:'
             ],
         }
-        
+
         keywords = validators.get(platform, ['stage', 'step', 'script', 'build'])
-        
+
         # Check if at least 2 keywords are present
         matches = sum(1 for kw in keywords if kw.lower() in content_lower)
         return matches >= 2
@@ -417,7 +418,7 @@ class CICDScanner:
     def _extract_secrets(self, content: str) -> List[str]:
         """Extract secret references from content."""
         secrets = set()
-        
+
         for pattern in self.SECRET_PATTERNS:
             matches = re.findall(pattern, content, re.IGNORECASE)
             for match in matches:
@@ -425,38 +426,38 @@ class CICDScanner:
                     secrets.add(match[0] if match[0] else match[-1])
                 else:
                     secrets.add(match)
-        
+
         return list(secrets)
 
     def _extract_services(self, content: str) -> List[str]:
         """Extract internal service references."""
         services = set()
-        
+
         for pattern in self.SERVICE_PATTERNS:
             matches = re.findall(pattern, content, re.IGNORECASE)
             services.update(matches)
-        
+
         return list(services)
 
     def _extract_cloud_providers(self, content: str) -> List[str]:
         """Extract cloud provider references."""
         clouds = set()
         content_lower = content.lower()
-        
+
         for cloud, patterns in self.CLOUD_PATTERNS.items():
             if any(re.search(p, content_lower) for p in patterns):
                 clouds.add(cloud)
-        
+
         return list(clouds)
 
     def _extract_attack_vectors(self, content: str) -> List[str]:
         """Identify potential attack vectors."""
         vectors = []
-        
+
         for vector_name, patterns in self.ATTACK_VECTORS.items():
             if any(re.search(p, content, re.IGNORECASE) for p in patterns):
                 vectors.append(vector_name)
-        
+
         return vectors
 
     def _calculate_severity(
@@ -466,31 +467,31 @@ class CICDScanner:
         vectors: List[str]
     ) -> str:
         """Calculate severity based on exposure."""
-        
+
         # Critical: Hardcoded secrets or privileged execution
         if 'privileged_execution' in vectors:
             return 'critical'
-        
+
         # High: Secrets referenced or internal services exposed
         if len(secrets) >= 3 or 'secret_extraction' in vectors:
             return 'high'
-        
+
         if services:
             return 'high'
-        
+
         # Medium: Any CI/CD config exposure
         if secrets or vectors:
             return 'medium'
-        
+
         return 'low'
 
 
 def generate_cicd_report(findings: List[CICDFinding]) -> str:
     """Generate a formatted report of CI/CD findings."""
-    
+
     if not findings:
         return "No exposed CI/CD configurations detected.\n"
-    
+
     lines = [
         "=" * 80,
         "CI/CD PIPELINE EXPOSURE REPORT",
@@ -498,7 +499,7 @@ def generate_cicd_report(findings: List[CICDFinding]) -> str:
         f"\nTotal exposed configurations: {len(findings)}",
         ""
     ]
-    
+
     # Group by platform
     by_platform = {}
     for finding in findings:
@@ -506,11 +507,11 @@ def generate_cicd_report(findings: List[CICDFinding]) -> str:
         if platform not in by_platform:
             by_platform[platform] = []
         by_platform[platform].append(finding)
-    
+
     for platform, platform_findings in sorted(by_platform.items()):
         lines.append(f"\n[{platform.upper()}] - {len(platform_findings)} configs")
         lines.append("-" * 60)
-        
+
         for finding in platform_findings:
             severity_icon = {
                 'critical': '🔴',
@@ -518,26 +519,26 @@ def generate_cicd_report(findings: List[CICDFinding]) -> str:
                 'medium': '🟡',
                 'low': '🔵'
             }.get(finding.severity, '⚪')
-            
+
             lines.append(f"\n  {severity_icon} {finding.file_path}")
             lines.append(f"     URL: {finding.url}")
             lines.append(f"     Severity: {finding.severity.upper()}")
-            
+
             if finding.secrets_referenced:
                 lines.append(f"     Secrets Referenced: {', '.join(finding.secrets_referenced[:5])}")
                 if len(finding.secrets_referenced) > 5:
                     lines.append(f"       ... and {len(finding.secrets_referenced) - 5} more")
-            
+
             if finding.cloud_providers:
                 lines.append(f"     Cloud Providers: {', '.join(finding.cloud_providers)}")
-            
+
             if finding.services_exposed:
-                lines.append(f"     Internal Services:")
+                lines.append("     Internal Services:")
                 for svc in finding.services_exposed[:5]:
                     lines.append(f"       - {svc}")
-            
+
             if finding.attack_vectors:
                 lines.append(f"     ⚠️  Attack Vectors: {', '.join(finding.attack_vectors)}")
-    
+
     lines.append("\n" + "=" * 80)
     return "\n".join(lines)

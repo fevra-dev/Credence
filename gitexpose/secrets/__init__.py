@@ -7,10 +7,10 @@ Credential detection and validation:
 - Secure export formats
 """
 
-from .secret_extractor import SecretExtractor, SecretValidator, SecretExporter
+from .secret_extractor import SecretExporter, SecretExtractor, SecretValidator
 
 __all__ = [
     'SecretExtractor',
-    'SecretValidator', 
+    'SecretValidator',
     'SecretExporter',
 ]

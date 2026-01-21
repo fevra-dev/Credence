@@ -13,13 +13,14 @@ These files often expose cloud architecture, credentials, and vulnerabilities.
 """
 
 import asyncio
-import aiohttp
-import re
 import logging
-from typing import Dict, List, Optional, Set
+import re
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Dict, List, Optional
 from urllib.parse import urljoin
+
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +89,7 @@ class IaCScanner:
     - Map infrastructure architecture
     - Detect privileged configurations
     """
-    
+
     # IaC paths to scan
     IAC_PATHS = {
         IaCType.TERRAFORM: [
@@ -104,7 +105,7 @@ class IaCScanner:
             'infra/main.tf',
             'deploy/terraform/main.tf',
         ],
-        
+
         IaCType.KUBERNETES: [
             'kubernetes.yml',
             'kubernetes.yaml',
@@ -126,7 +127,7 @@ class IaCScanner:
             'kubernetes/deployment.yaml',
             'manifests/deployment.yaml',
         ],
-        
+
         IaCType.DOCKER_COMPOSE: [
             'docker-compose.yml',
             'docker-compose.yaml',
@@ -136,7 +137,7 @@ class IaCScanner:
             'compose.yml',
             'compose.yaml',
         ],
-        
+
         IaCType.DOCKERFILE: [
             'Dockerfile',
             'Dockerfile.dev',
@@ -145,7 +146,7 @@ class IaCScanner:
             'docker/Dockerfile',
             '.docker/Dockerfile',
         ],
-        
+
         IaCType.ANSIBLE: [
             'playbook.yml',
             'playbook.yaml',
@@ -158,7 +159,7 @@ class IaCScanner:
             'inventory.yml',
             'ansible.cfg',
         ],
-        
+
         IaCType.CLOUDFORMATION: [
             'template.yml',
             'template.yaml',
@@ -170,7 +171,7 @@ class IaCScanner:
             'infrastructure.yml',
             'aws/cloudformation.yml',
         ],
-        
+
         IaCType.HELM: [
             'Chart.yaml',
             'values.yaml',
@@ -182,19 +183,19 @@ class IaCScanner:
             'charts/Chart.yaml',
             'helm/Chart.yaml',
         ],
-        
+
         IaCType.VAGRANT: [
             'Vagrantfile',
             'vagrant/Vagrantfile',
         ],
-        
+
         IaCType.PULUMI: [
             'Pulumi.yaml',
             'Pulumi.dev.yaml',
             'Pulumi.prod.yaml',
         ],
     }
-    
+
     # Security check rules per IaC type
     SECURITY_RULES = {
         IaCType.TERRAFORM: {
@@ -214,7 +215,7 @@ class IaCScanner:
                 (r'storage_encrypted\s*=\s*false', 'Storage encryption disabled'),
             ],
         },
-        
+
         IaCType.KUBERNETES: {
             'privileged_container': [
                 (r'privileged:\s*true', 'Privileged container detected'),
@@ -235,7 +236,7 @@ class IaCScanner:
                 (r'hostIPC:\s*true', 'Host IPC namespace enabled'),
             ],
         },
-        
+
         IaCType.DOCKER_COMPOSE: {
             'privileged_container': [
                 (r'privileged:\s*true', 'Privileged container'),
@@ -253,7 +254,7 @@ class IaCScanner:
                 (r'user:\s*0', 'Running as UID 0'),
             ],
         },
-        
+
         IaCType.DOCKERFILE: {
             'root_user': [
                 (r'^(?!.*USER\s+\S).*$', 'No USER directive, running as root'),
@@ -272,7 +273,7 @@ class IaCScanner:
                 (r'FROM\s+\S+\s*$', 'No tag specified (defaults to latest)'),
             ],
         },
-        
+
         IaCType.ANSIBLE: {
             'hardcoded_secret': [
                 (r'password:\s*["\'][^{]+["\']', 'Hardcoded password'),
@@ -283,7 +284,7 @@ class IaCScanner:
                 (r'no_log:\s*false', 'Logging enabled for sensitive task'),
             ],
         },
-        
+
         IaCType.CLOUDFORMATION: {
             'hardcoded_secret': [
                 (r'"Password"\s*:\s*"[^{]+?"', 'Hardcoded password'),
@@ -295,7 +296,7 @@ class IaCScanner:
             ],
         },
     }
-    
+
     # Remediation advice
     REMEDIATION = {
         SecurityIssueType.HARDCODED_SECRET: "Use environment variables, secrets management, or encrypted vault",
@@ -328,7 +329,7 @@ class IaCScanner:
         self.timeout = timeout
         self.max_concurrent = max_concurrent
         self.analyze_security = analyze_security
-        
+
         self._owns_session = session is None
 
     async def __aenter__(self):
@@ -358,19 +359,19 @@ class IaCScanner:
         findings = []
         semaphore = asyncio.Semaphore(self.max_concurrent)
         tasks = []
-        
+
         # Generate all paths to check
         for iac_type, paths in self.IAC_PATHS.items():
             for path in paths:
                 url = urljoin(target_url.rstrip('/') + '/', path)
                 tasks.append(self._check_path(url, path, iac_type, semaphore))
-        
+
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         for result in results:
             if isinstance(result, IaCFinding):
                 findings.append(result)
-        
+
         logger.info(f"Found {len(findings)} IaC configurations")
         return findings
 
@@ -382,31 +383,31 @@ class IaCScanner:
         semaphore: asyncio.Semaphore
     ) -> Optional[IaCFinding]:
         """Check a single IaC path."""
-        
+
         async with semaphore:
             try:
                 async with self.session.get(url, ssl=False) as resp:
                     if resp.status != 200:
                         return None
-                    
+
                     content = await resp.text()
-                    
+
                     # Validate content looks like IaC
                     if not self._validate_iac_content(content, iac_type):
                         return None
-                    
+
                     # Analyze for security issues
                     security_issues = []
                     resources = []
                     cloud_provider = None
-                    
+
                     if self.analyze_security:
                         security_issues = self._analyze_security(content, iac_type)
                         resources = self._extract_resources(content, iac_type)
                         cloud_provider = self._detect_cloud_provider(content)
-                    
+
                     severity = self._calculate_severity(iac_type, security_issues)
-                    
+
                     return IaCFinding(
                         iac_type=iac_type,
                         file_path=path,
@@ -421,17 +422,17 @@ class IaCScanner:
                             'content_type': resp.headers.get('Content-Type', '')
                         }
                     )
-                    
+
             except asyncio.TimeoutError:
                 logger.debug(f"Timeout checking {url}")
             except Exception as e:
                 logger.debug(f"Error checking {url}: {e}")
-        
+
         return None
 
     def _validate_iac_content(self, content: str, iac_type: IaCType) -> bool:
         """Validate that content looks like valid IaC."""
-        
+
         validators = {
             IaCType.TERRAFORM: ['resource', 'provider', 'variable', 'output', 'module'],
             IaCType.KUBERNETES: ['apiVersion', 'kind', 'metadata', 'spec'],
@@ -443,7 +444,7 @@ class IaCScanner:
             IaCType.VAGRANT: ['Vagrant', 'config.vm', 'define'],
             IaCType.PULUMI: ['name', 'runtime', 'description'],
         }
-        
+
         keywords = validators.get(iac_type, [])
         matches = sum(1 for kw in keywords if kw in content)
         return matches >= 2
@@ -451,20 +452,20 @@ class IaCScanner:
     def _analyze_security(self, content: str, iac_type: IaCType) -> List[SecurityIssue]:
         """Analyze IaC content for security issues."""
         issues = []
-        
+
         rules = self.SECURITY_RULES.get(iac_type, {})
-        
+
         for issue_category, patterns in rules.items():
             for pattern, description in patterns:
                 matches = list(re.finditer(pattern, content, re.MULTILINE | re.IGNORECASE))
-                
+
                 for match in matches:
                     line_num = content[:match.start()].count('\n') + 1
-                    
+
                     # Map category to issue type
                     issue_type = self._map_issue_type(issue_category)
                     severity = self._get_issue_severity(issue_type)
-                    
+
                     issues.append(SecurityIssue(
                         issue_type=issue_type,
                         severity=severity,
@@ -472,7 +473,7 @@ class IaCScanner:
                         line_number=line_num,
                         remediation=self.REMEDIATION.get(issue_type, "Review and fix configuration"),
                     ))
-        
+
         return issues
 
     def _map_issue_type(self, category: str) -> SecurityIssueType:
@@ -510,29 +511,29 @@ class IaCScanner:
     def _extract_resources(self, content: str, iac_type: IaCType) -> List[str]:
         """Extract resource names from IaC content."""
         resources = []
-        
+
         if iac_type == IaCType.TERRAFORM:
             # Match resource "type" "name"
             matches = re.findall(r'resource\s+"([^"]+)"\s+"([^"]+)"', content)
             resources.extend([f"{t}.{n}" for t, n in matches])
-        
+
         elif iac_type == IaCType.KUBERNETES:
             # Match kind and name
             kinds = re.findall(r'kind:\s*(\S+)', content)
             names = re.findall(r'name:\s*(\S+)', content)
             resources.extend([f"{k}/{n}" for k, n in zip(kinds, names)])
-        
+
         elif iac_type == IaCType.DOCKER_COMPOSE:
             # Match service names
             matches = re.findall(r'^\s*(\w+):\s*$', content, re.MULTILINE)
             resources.extend(matches)
-        
+
         return resources[:20]  # Limit
 
     def _detect_cloud_provider(self, content: str) -> Optional[str]:
         """Detect cloud provider from content."""
         content_lower = content.lower()
-        
+
         if any(x in content_lower for x in ['aws', 'amazonaws', 'arn:aws']):
             return 'aws'
         elif any(x in content_lower for x in ['azure', 'microsoft', '.azure.']):
@@ -541,39 +542,39 @@ class IaCScanner:
             return 'gcp'
         elif 'digitalocean' in content_lower:
             return 'digitalocean'
-        
+
         return None
 
     def _calculate_severity(self, iac_type: IaCType, issues: List[SecurityIssue]) -> str:
         """Calculate overall severity."""
-        
+
         if not issues:
             # Terraform state files are always critical
             if iac_type == IaCType.TERRAFORM:
                 return 'high'
             return 'medium'
-        
+
         # Get highest severity issue
         severities = ['critical', 'high', 'medium', 'low']
         for sev in severities:
             if any(i.severity == sev for i in issues):
                 return sev
-        
+
         return 'low'
 
 
 def generate_iac_report(findings: List[IaCFinding]) -> str:
     """Generate a formatted report of IaC findings."""
-    
+
     if not findings:
         return "No exposed IaC configurations detected.\n"
-    
+
     # Count security issues
     total_issues = sum(len(f.security_issues) for f in findings)
     critical_issues = sum(
         1 for f in findings for i in f.security_issues if i.severity == 'critical'
     )
-    
+
     lines = [
         "=" * 80,
         "INFRASTRUCTURE AS CODE EXPOSURE REPORT",
@@ -583,7 +584,7 @@ def generate_iac_report(findings: List[IaCFinding]) -> str:
         f"Critical issues: {critical_issues}",
         ""
     ]
-    
+
     # Group by type
     by_type = {}
     for finding in findings:
@@ -591,11 +592,11 @@ def generate_iac_report(findings: List[IaCFinding]) -> str:
         if iac_type not in by_type:
             by_type[iac_type] = []
         by_type[iac_type].append(finding)
-    
+
     for iac_type, type_findings in sorted(by_type.items()):
         lines.append(f"\n[{iac_type.upper()}] - {len(type_findings)} files")
         lines.append("-" * 60)
-        
+
         for finding in type_findings:
             severity_icon = {
                 'critical': '🔴',
@@ -603,26 +604,26 @@ def generate_iac_report(findings: List[IaCFinding]) -> str:
                 'medium': '🟡',
                 'low': '🔵'
             }.get(finding.severity, '⚪')
-            
+
             lines.append(f"\n  {severity_icon} {finding.file_path}")
             lines.append(f"     URL: {finding.url}")
             lines.append(f"     Severity: {finding.severity.upper()}")
-            
+
             if finding.cloud_provider:
                 lines.append(f"     Cloud Provider: {finding.cloud_provider.upper()}")
-            
+
             if finding.resources_exposed:
                 lines.append(f"     Resources: {', '.join(finding.resources_exposed[:5])}")
-            
+
             if finding.security_issues:
                 lines.append(f"\n     ⚠️  Security Issues ({len(finding.security_issues)}):")
                 for issue in finding.security_issues[:5]:
                     lines.append(f"       - [{issue.severity.upper()}] {issue.description}")
                     lines.append(f"         Line: {issue.line_number}")
                     lines.append(f"         Fix: {issue.remediation}")
-                
+
                 if len(finding.security_issues) > 5:
                     lines.append(f"       ... and {len(finding.security_issues) - 5} more")
-    
+
     lines.append("\n" + "=" * 80)
     return "\n".join(lines)

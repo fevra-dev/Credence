@@ -2,7 +2,8 @@
 
 import json
 from dataclasses import asdict
-from ..models import ScanReport, Severity, Category
+
+from ..models import Category, ScanReport, Severity
 from .base import BaseReporter
 
 

@@ -1,7 +1,8 @@
 """Colored console output reporter."""
 
 import click
-from ..models import ScanReport, TargetReport, ScanResult, Severity
+
+from ..models import ScanReport, ScanResult, Severity, TargetReport
 from .base import BaseReporter
 
 

@@ -24,12 +24,10 @@ Author: GitExpose Security Research
 import asyncio
 import json
 import sys
-from typing import Dict, List, Optional, Any, Union, Callable
-from dataclasses import dataclass, field, asdict
-from enum import Enum
-from pathlib import Path
 import traceback
-from datetime import datetime
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Union
 
 
 class ToolType(Enum):
@@ -109,19 +107,19 @@ class GitExposeMCPServer:
     }
     ```
     """
-    
+
     VERSION = "1.0.0"
-    
+
     def __init__(self):
         self.tools: Dict[str, Callable] = {}
         self.tool_definitions: Dict[str, ToolDefinition] = {}
-        
+
         # Register all GitExpose tools
         self._register_tools()
-    
+
     def _register_tools(self):
         """Register all available tools"""
-        
+
         # Comprehensive scan tool
         self._register_tool(
             ToolDefinition(
@@ -142,7 +140,7 @@ class GitExposeMCPServer:
             ),
             self._execute_scan
         )
-        
+
         # Git repository dumper
         self._register_tool(
             ToolDefinition(
@@ -161,7 +159,7 @@ class GitExposeMCPServer:
             ),
             self._execute_git_dump
         )
-        
+
         # Secret extraction
         self._register_tool(
             ToolDefinition(
@@ -180,7 +178,7 @@ class GitExposeMCPServer:
             ),
             self._execute_secret_extraction
         )
-        
+
         # React2Shell detection
         self._register_tool(
             ToolDefinition(
@@ -198,7 +196,7 @@ class GitExposeMCPServer:
             ),
             self._execute_react2shell_detect
         )
-        
+
         # ML model scanning
         self._register_tool(
             ToolDefinition(
@@ -216,7 +214,7 @@ class GitExposeMCPServer:
             ),
             self._execute_ml_model_scan
         )
-        
+
         # LLM/RAG exposure scanning
         self._register_tool(
             ToolDefinition(
@@ -233,7 +231,7 @@ class GitExposeMCPServer:
             ),
             self._execute_llm_exposure_scan
         )
-        
+
         # Invisible Unicode detection
         self._register_tool(
             ToolDefinition(
@@ -251,7 +249,7 @@ class GitExposeMCPServer:
             ),
             self._execute_unicode_detect
         )
-        
+
         # Source map analysis
         self._register_tool(
             ToolDefinition(
@@ -269,7 +267,7 @@ class GitExposeMCPServer:
             ),
             self._execute_sourcemap_scan
         )
-        
+
         # CI/CD exposure scanning
         self._register_tool(
             ToolDefinition(
@@ -286,7 +284,7 @@ class GitExposeMCPServer:
             ),
             self._execute_cicd_scan
         )
-        
+
         # API discovery
         self._register_tool(
             ToolDefinition(
@@ -304,27 +302,27 @@ class GitExposeMCPServer:
             ),
             self._execute_api_discovery
         )
-    
+
     def _register_tool(self, definition: ToolDefinition, handler: Callable):
         """Register a tool with its handler"""
         self.tools[definition.name] = handler
         self.tool_definitions[definition.name] = definition
-    
+
     # Tool execution methods
-    
+
     async def _execute_scan(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Execute comprehensive scan"""
         try:
             # Import scanner (lazy import to avoid circular deps)
             from .scanner import GitExposeScanner
-            
+
             target = params["target"]
             concurrency = params.get("concurrency", 50)
             timeout = params.get("timeout", 10)
-            
+
             scanner = GitExposeScanner(concurrency=concurrency, timeout=timeout)
             report = scanner.scan_sync([target])
-            
+
             # Convert to dict
             findings = []
             for target_report in report.target_reports:
@@ -337,7 +335,7 @@ class GitExposeMCPServer:
                         "description": finding.description,
                         "evidence": finding.evidence[:200] if finding.evidence else None,
                     })
-            
+
             return {
                 "target": target,
                 "findings_count": len(findings),
@@ -348,15 +346,15 @@ class GitExposeMCPServer:
             return await self._fallback_scan(params)
         except Exception as e:
             raise Exception(f"Scan failed: {str(e)}")
-    
+
     async def _fallback_scan(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Fallback scan using basic HTTP checks"""
         import aiohttp
-        
+
         target = params["target"]
         if not target.startswith(('http://', 'https://')):
             target = f"https://{target}"
-        
+
         findings = []
         paths_to_check = [
             ("/.git/config", "critical", "git"),
@@ -366,7 +364,7 @@ class GitExposeMCPServer:
             ("/config.json", "high", "config"),
             ("/package.json", "medium", "config"),
         ]
-        
+
         async with aiohttp.ClientSession() as session:
             for path, severity, category in paths_to_check:
                 try:
@@ -384,28 +382,30 @@ class GitExposeMCPServer:
                                 })
                 except Exception:
                     continue
-        
+
         return {
             "target": target,
             "findings_count": len(findings),
             "findings": findings,
         }
-    
+
     async def _execute_git_dump(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Execute git repository dump"""
         try:
-            from .git_dumper import GitDumper
-            import aiohttp
             from pathlib import Path
-            
+
+            import aiohttp
+
+            from .git_dumper import GitDumper
+
             target = params["target"]
             output_dir = Path(params.get("output_dir", "./git-dumps"))
             analyze_secrets = params.get("analyze_secrets", True)
-            
+
             async with aiohttp.ClientSession() as session:
                 dumper = GitDumper(target, output_dir, session)
                 result = await dumper.dump()
-            
+
             return {
                 "success": result.get("success", False),
                 "files_downloaded": result.get("files_downloaded", 0),
@@ -418,19 +418,19 @@ class GitExposeMCPServer:
                 "success": False,
                 "error": str(e),
             }
-    
+
     async def _execute_secret_extraction(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Execute secret extraction"""
         try:
             from .secret_extractor import SecretExtractor
-            
+
             content = params["content"]
             validate = params.get("validate", False)
             source = params.get("source", "unknown")
-            
+
             extractor = SecretExtractor()
             secrets = await extractor.extract(content, validate=validate)
-            
+
             # Mask secrets for safety
             masked_secrets = []
             for secret in secrets:
@@ -441,7 +441,7 @@ class GitExposeMCPServer:
                     "valid": secret.get("valid"),
                 }
                 masked_secrets.append(masked)
-            
+
             return {
                 "source": source,
                 "secrets_found": len(masked_secrets),
@@ -452,18 +452,18 @@ class GitExposeMCPServer:
                 "secrets_found": 0,
                 "error": str(e),
             }
-    
+
     async def _execute_react2shell_detect(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Execute React2Shell detection"""
         try:
             from .react2shell_detector import React2ShellDetector
-            
+
             target = params["target"]
             deep_scan = params.get("deep_scan", True)
-            
+
             detector = React2ShellDetector(deep_scan=deep_scan)
             finding = await detector.scan(target)
-            
+
             return {
                 "target": target,
                 "status": finding.status.value,
@@ -480,18 +480,18 @@ class GitExposeMCPServer:
                 "status": "error",
                 "error": str(e),
             }
-    
+
     async def _execute_ml_model_scan(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Execute ML model scan"""
         try:
             from .ml_model_scanner import MLModelScanner
-            
+
             target = params["target"]
             deep_analysis = params.get("deep_analysis", True)
-            
+
             scanner = MLModelScanner(deep_analysis=deep_analysis)
             result = await scanner.scan(target)
-            
+
             exposed_models = []
             for model in result.exposed_models:
                 exposed_models.append({
@@ -502,7 +502,7 @@ class GitExposeMCPServer:
                     "risk_level": model.risk_level.value,
                     "indicators_count": len(model.indicators),
                 })
-            
+
             return {
                 "target": target,
                 "exposed_models_count": len(exposed_models),
@@ -515,17 +515,17 @@ class GitExposeMCPServer:
                 "exposed_models_count": 0,
                 "error": str(e),
             }
-    
+
     async def _execute_llm_exposure_scan(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Execute LLM/RAG exposure scan"""
         try:
             from .llm_exposure_scanner import LLMExposureScanner
-            
+
             target = params["target"]
-            
+
             scanner = LLMExposureScanner()
             result = await scanner.scan(target)
-            
+
             exposures = []
             for exp in result.exposures:
                 exposures.append({
@@ -535,7 +535,7 @@ class GitExposeMCPServer:
                     "description": exp.description,
                     "evidence": exp.evidence[:3],
                 })
-            
+
             return {
                 "target": target,
                 "exposures_count": len(exposures),
@@ -549,17 +549,20 @@ class GitExposeMCPServer:
                 "exposures_count": 0,
                 "error": str(e),
             }
-    
+
     async def _execute_unicode_detect(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Execute invisible Unicode detection"""
         try:
-            from .invisible_unicode_detector import InvisibleUnicodeScanner, InvisibleUnicodeAnalyzer
-            
+            from .invisible_unicode_detector import (
+                InvisibleUnicodeAnalyzer,
+                InvisibleUnicodeScanner,
+            )
+
             if "content" in params and params["content"]:
                 # Direct content analysis
                 analyzer = InvisibleUnicodeAnalyzer()
                 anomalies = analyzer.analyze(params["content"])
-                
+
                 return {
                     "source": "direct_content",
                     "anomalies_count": len(anomalies),
@@ -579,7 +582,7 @@ class GitExposeMCPServer:
                 target = params["target"]
                 scanner = InvisibleUnicodeScanner()
                 result = await scanner.scan(target)
-                
+
                 return {
                     "target": target,
                     "files_analyzed": len(result.analyzed_files),
@@ -592,18 +595,18 @@ class GitExposeMCPServer:
                 "anomalies_count": 0,
                 "error": str(e),
             }
-    
+
     async def _execute_sourcemap_scan(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Execute source map scan"""
         try:
             from .sourcemap_analyzer import SourceMapAnalyzer
-            
+
             target = params["target"]
             extract_sources = params.get("extract_sources", True)
-            
+
             analyzer = SourceMapAnalyzer()
             result = await analyzer.scan(target)
-            
+
             return {
                 "target": target,
                 "sourcemaps_found": len(result.get("sourcemaps", [])),
@@ -615,17 +618,17 @@ class GitExposeMCPServer:
                 "sourcemaps_found": 0,
                 "error": str(e),
             }
-    
+
     async def _execute_cicd_scan(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Execute CI/CD exposure scan"""
         try:
             from .cicd_scanner import CICDScanner
-            
+
             target = params["target"]
-            
+
             scanner = CICDScanner()
             result = await scanner.scan(target)
-            
+
             return {
                 "target": target,
                 "findings_count": len(result.get("findings", [])),
@@ -637,18 +640,18 @@ class GitExposeMCPServer:
                 "findings_count": 0,
                 "error": str(e),
             }
-    
+
     async def _execute_api_discovery(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Execute API discovery"""
         try:
             from .api_discovery import APIDiscovery
-            
+
             target = params["target"]
             graphql_introspection = params.get("graphql_introspection", True)
-            
+
             discovery = APIDiscovery()
             result = await discovery.discover(target, graphql_introspection=graphql_introspection)
-            
+
             return {
                 "target": target,
                 "endpoints_discovered": len(result.get("endpoints", [])),
@@ -661,9 +664,9 @@ class GitExposeMCPServer:
                 "endpoints_discovered": 0,
                 "error": str(e),
             }
-    
+
     # MCP Protocol Methods
-    
+
     async def handle_request(self, request: MCPRequest) -> MCPResponse:
         """Handle incoming MCP request"""
         try:
@@ -687,7 +690,7 @@ class GitExposeMCPServer:
                 id=request.id,
                 error={"code": -32603, "message": str(e)}
             )
-    
+
     async def _handle_initialize(self, request: MCPRequest) -> MCPResponse:
         """Handle initialize request"""
         return MCPResponse(
@@ -705,7 +708,7 @@ class GitExposeMCPServer:
                 }
             }
         )
-    
+
     async def _handle_tools_list(self, request: MCPRequest) -> MCPResponse:
         """Handle tools/list request"""
         tools = []
@@ -719,7 +722,7 @@ class GitExposeMCPServer:
                     "required": [],
                 }
             }
-            
+
             for param in definition.parameters:
                 tool_schema["inputSchema"]["properties"][param.name] = {
                     "type": param.type,
@@ -731,32 +734,32 @@ class GitExposeMCPServer:
                     tool_schema["inputSchema"]["properties"][param.name]["default"] = param.default
                 if param.required:
                     tool_schema["inputSchema"]["required"].append(param.name)
-            
+
             tools.append(tool_schema)
-        
+
         return MCPResponse(id=request.id, result={"tools": tools})
-    
+
     async def _handle_tools_call(self, request: MCPRequest) -> MCPResponse:
         """Handle tools/call request"""
         params = request.params or {}
         tool_name = params.get("name")
         tool_args = params.get("arguments", {})
-        
+
         if tool_name not in self.tools:
             return MCPResponse(
                 id=request.id,
                 error={"code": -32602, "message": f"Unknown tool: {tool_name}"}
             )
-        
+
         try:
             import time
             start_time = time.time()
-            
+
             handler = self.tools[tool_name]
             result = await handler(tool_args)
-            
+
             execution_time = time.time() - start_time
-            
+
             return MCPResponse(
                 id=request.id,
                 result={
@@ -789,30 +792,29 @@ class GitExposeMCPServer:
                     "isError": True,
                 }
             )
-    
+
     async def _handle_resources_list(self, request: MCPRequest) -> MCPResponse:
         """Handle resources/list request"""
         # GitExpose doesn't expose resources, only tools
         return MCPResponse(id=request.id, result={"resources": []})
-    
+
     async def run_stdio(self):
         """Run server using stdio transport"""
-        import sys
-        
+
         while True:
             try:
                 # Read line from stdin
                 line = await asyncio.get_event_loop().run_in_executor(
                     None, sys.stdin.readline
                 )
-                
+
                 if not line:
                     break
-                
+
                 line = line.strip()
                 if not line:
                     continue
-                
+
                 # Parse JSON-RPC request
                 try:
                     data = json.loads(line)
@@ -830,10 +832,10 @@ class GitExposeMCPServer:
                     }
                     print(json.dumps(error_response), flush=True)
                     continue
-                
+
                 # Handle request
                 response = await self.handle_request(request)
-                
+
                 # Send response
                 response_dict = {
                     "jsonrpc": response.jsonrpc,
@@ -843,13 +845,13 @@ class GitExposeMCPServer:
                     response_dict["result"] = response.result
                 if response.error is not None:
                     response_dict["error"] = response.error
-                
+
                 print(json.dumps(response_dict), flush=True)
-                
+
                 # Check for shutdown
                 if request.method == "shutdown":
                     break
-                    
+
             except Exception as e:
                 error_response = {
                     "jsonrpc": "2.0",
