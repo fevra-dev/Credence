@@ -10,6 +10,8 @@ from typing import Dict, List, Optional, Set
 
 import aiohttp
 
+from ..data.loader import CredentialPattern, load_credential_patterns
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,44 +37,32 @@ class SecretExtractor:
         'generic_password': r'(?i)(password|passwd|pwd)["\']?\s*[:=]\s*["\']([^\s"\']{8,})["\']',
     }
 
+    # v0.2 — patterns loaded from JSON corpus, with OWASP/ATLAS metadata.
+    # Loaded at class-definition time; failures are loud (PatternLoadError).
+    _V02_PATTERNS: List[CredentialPattern] = load_credential_patterns()
+
     def __init__(self, validate: bool = False):
         self.validate = validate
         self.validator = SecretValidator() if validate else None
 
     async def extract(self, content: str, source: str = "unknown") -> List[Dict]:
-        """
-        Extract secrets from content.
-        
-        Args:
-            content: Text content to scan
-            source: Source identifier (URL, file path, etc.)
-            
-        Returns:
-            List of found secrets
-        """
+        """Extract secrets from content. Returns list of dicts."""
         secrets = []
         seen: Set[str] = set()
 
+        # v0.1 patterns (no OWASP/ATLAS metadata — defaulted to None)
         for secret_type, pattern in self.PATTERNS.items():
             try:
                 matches = re.finditer(pattern, content, re.MULTILINE | re.IGNORECASE)
-
                 for match in matches:
                     secret_value = match.group()
-
-                    # Deduplicate
                     if secret_value in seen:
                         continue
                     seen.add(secret_value)
-
-                    # Get line number
                     line_num = content[:match.start()].count('\n') + 1
-
-                    # Get context
                     start = max(0, match.start() - 40)
                     end = min(len(content), match.end() + 40)
                     context = content[start:end].replace('\n', ' ')
-
                     secret_info = {
                         'type': secret_type,
                         'value': self._mask_value(secret_value),
@@ -80,18 +70,46 @@ class SecretExtractor:
                         'source': source,
                         'line': line_num,
                         'context': context,
-                        'validated': None
+                        'validated': None,
+                        'attack_class': None,
+                        'atlas_technique': None,
                     }
-
-                    # Validate if requested
                     if self.validate and self.validator:
                         is_valid = await self.validator.validate(secret_type, secret_value)
                         secret_info['validated'] = is_valid
-
                     secrets.append(secret_info)
-
             except Exception as e:
                 logger.debug(f"Error extracting {secret_type}: {e}")
+
+        # v0.2 patterns (with OWASP/ATLAS metadata).
+        # Note: case-sensitive — JSON regexes encode their own case requirements.
+        for pat in self._V02_PATTERNS:
+            try:
+                matches = re.finditer(pat.regex, content, re.MULTILINE)
+                for match in matches:
+                    secret_value = match.group()
+                    if secret_value in seen:
+                        continue
+                    seen.add(secret_value)
+                    line_num = content[:match.start()].count('\n') + 1
+                    start = max(0, match.start() - 40)
+                    end = min(len(content), match.end() + 40)
+                    context = content[start:end].replace('\n', ' ')
+                    secrets.append({
+                        'type': pat.name,
+                        'value': self._mask_value(secret_value),
+                        'value_full': secret_value,
+                        'source': source,
+                        'line': line_num,
+                        'context': context,
+                        'validated': None,
+                        'attack_class': pat.attack_class,
+                        'atlas_technique': pat.atlas_technique,
+                        'severity': pat.severity,
+                        'category': pat.category,
+                    })
+            except Exception as e:
+                logger.debug(f"Error extracting v02 pattern {pat.name}: {e}")
 
         return secrets
 
