@@ -81,3 +81,14 @@ def test_llm_exposure_scanner_categories_have_owasp_atlas():
     for name, cfg in AI_TOOL_CONFIGS.items():
         assert "attack_class" in cfg, f"{name} missing attack_class"
         assert "atlas_technique" in cfg, f"{name} missing atlas_technique"
+
+
+def test_llm_exposure_scanner_categories_use_severity_enum():
+    """AI_TOOL_CONFIGS severities are Severity enum members, not strings."""
+    from gitexpose.advanced.llm_exposure_scanner import AI_TOOL_CONFIGS, Severity
+
+    for name, cfg in AI_TOOL_CONFIGS.items():
+        assert isinstance(cfg["severity"], Severity), (
+            f"{name}: severity must be Severity enum member, got "
+            f"{type(cfg['severity']).__name__} ({cfg['severity']!r})"
+        )
