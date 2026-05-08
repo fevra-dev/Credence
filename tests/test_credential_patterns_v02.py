@@ -103,3 +103,25 @@ def test_extracted_secrets_include_owasp_atlas_metadata():
     groq = next(s for s in secrets if s["type"] == "groq_api_key")
     assert groq["attack_class"] == "LLM06"
     assert groq["atlas_technique"] == "AML.T0019"
+
+
+def test_v01_secret_dict_has_full_schema():
+    """v0.1 patterns emit dicts with all 4 v0.2 metadata keys (defaulted to None)."""
+    secrets = _extract("aws_access_key_id = AKIA1234567890ABCDEF")
+    aws = next(s for s in secrets if s["type"] == "aws_access_key")
+    # Schema symmetry — v0.1 findings must have all four metadata keys present
+    assert aws["attack_class"] is None
+    assert aws["atlas_technique"] is None
+    assert aws["severity"] is None
+    assert aws["category"] is None
+
+
+def test_elevenlabs_value_excludes_env_var_prefix():
+    """ElevenLabs match should extract only the hex token, not 'XI_API_KEY=...'."""
+    hex_secret = "f" * 32
+    secrets = _extract(f'XI_API_KEY="{hex_secret}"')
+    eleven = next(s for s in secrets if s["type"] == "elevenlabs_context_bound")
+    # The recorded full value is just the hex — not "XI_API_KEY=..." prefix
+    assert eleven["value_full"] == hex_secret
+    # The mask therefore obscures the hex, not the env-var name
+    assert "XI_A" not in eleven["value"]

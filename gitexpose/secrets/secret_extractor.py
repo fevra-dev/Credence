@@ -73,6 +73,8 @@ class SecretExtractor:
                         'validated': None,
                         'attack_class': None,
                         'atlas_technique': None,
+                        'severity': None,
+                        'category': None,
                     }
                     if self.validate and self.validator:
                         is_valid = await self.validator.validate(secret_type, secret_value)
@@ -87,7 +89,7 @@ class SecretExtractor:
             try:
                 matches = re.finditer(pat.regex, content, re.MULTILINE)
                 for match in matches:
-                    secret_value = match.group()
+                    secret_value = match.group(1) if match.groups() else match.group()
                     if secret_value in seen:
                         continue
                     seen.add(secret_value)
