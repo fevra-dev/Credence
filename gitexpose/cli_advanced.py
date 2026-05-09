@@ -18,6 +18,7 @@ import asyncio
 import json
 import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 import click
@@ -814,6 +815,50 @@ def list_tools():
     else:
         for cmd, desc, opts in tools:
             print(f"  {cmd:15} - {desc} ({opts})")
+
+
+@cli.command("supply-chain")
+@click.argument("path", type=click.Path(exists=True, file_okay=False, dir_okay=True))
+@click.option("-o", "--output", type=click.Choice(["console", "json"]), default="console")
+@click.option("--out-file", type=click.Path(), help="Write output to file instead of stdout")
+def supply_chain(path: str, output: str, out_file: str):
+    """Scan a local directory for supply-chain risks (TeamPCP-class)."""
+    from .advanced.local_fs_scanner import LocalFilesystemScanner
+
+    scanner = LocalFilesystemScanner()
+    findings = scanner.scan(Path(path))
+
+    if output == "json":
+        import json as _json
+        text = _json.dumps(findings, indent=2, default=str)
+    else:
+        if not findings:
+            text = f"✅ No supply-chain findings in {path}"
+        else:
+            lines = [f"🔍 {len(findings)} supply-chain finding(s) in {path}:"]
+            for f in findings:
+                sev = f.get("severity", "?")
+                ftype = f.get("type", "?")
+                src = f.get("source", "")
+                desc = (f.get("description") or "").splitlines()[0]
+                lines.append(f"  [{sev}] {ftype}  ({src})")
+                if desc:
+                    lines.append(f"     {desc}")
+                if f.get("attack_class") or f.get("atlas_technique"):
+                    parts = []
+                    if f.get("attack_class"):
+                        parts.append(f"OWASP {f['attack_class']}")
+                    if f.get("atlas_technique"):
+                        parts.append(f"ATLAS {f['atlas_technique']}")
+                    lines.append(f"     📋 {' · '.join(parts)}")
+            text = "\n".join(lines)
+
+    if out_file:
+        Path(out_file).write_text(text)
+    else:
+        click.echo(text)
+
+    sys.exit(1 if findings else 0)
 
 
 def main():
