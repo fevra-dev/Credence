@@ -29,3 +29,14 @@ def test_supply_chain_clean_dir_yields_no_findings(tmp_path: Path):
     result = runner.invoke(cli, ["supply-chain", str(tmp_path)])
     assert result.exit_code == 0
     assert "No supply-chain" in result.output
+
+
+def test_main_cli_accepts_sarif_output_format():
+    """`gitexpose --help` lists sarif as an output choice."""
+    from click.testing import CliRunner
+
+    from gitexpose.cli import main
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["--help"])
+    assert "sarif" in result.output

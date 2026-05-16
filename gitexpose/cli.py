@@ -13,7 +13,7 @@ from typing import List, Optional
 import click
 
 from . import __version__
-from .reporters import ConsoleReporter, CSVReporter, JSONReporter
+from .reporters import ConsoleReporter, CSVReporter, JSONReporter, SARIFReporter
 from .scanner import GitExposeScanner
 
 
@@ -49,7 +49,7 @@ def load_targets_from_file(filepath: str) -> List[str]:
 @click.option(
     "-o",
     "--output",
-    type=click.Choice(["console", "json", "csv"]),
+    type=click.Choice(["console", "json", "csv", "sarif"]),
     default="console",
     help="Output format [default: console]",
 )
@@ -158,6 +158,7 @@ def main(
         "console": ConsoleReporter,
         "json": JSONReporter,
         "csv": CSVReporter,
+        "sarif": SARIFReporter,
     }
     reporter = reporters[output](quiet=quiet, verbose=verbose, no_color=no_color)
 
