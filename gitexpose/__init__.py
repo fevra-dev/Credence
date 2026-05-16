@@ -1,5 +1,5 @@
 """
-GitExpose - Advanced Security Scanner for the 2025 Threat Landscape
+GitExpose - Exposure intelligence for AI and dev infrastructure
 
 A comprehensive, high-performance security scanner that detects exposed sensitive
 files, vulnerable frameworks, AI/ML infrastructure, and supply chain threats.
@@ -29,7 +29,7 @@ Usage:
     from gitexpose.secrets import SecretExtractor
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "GitExpose Contributors"
 __license__ = "MIT"
 

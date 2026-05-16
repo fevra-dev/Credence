@@ -4,13 +4,15 @@ from setuptools import setup, find_packages
 
 setup(
     name="gitexpose",
-    version="0.1.0",
-    description="Advanced security scanner for exposed files, vulnerable frameworks, AI infrastructure, and supply chain threats",
+    version="0.2.0",
+    description="Exposure intelligence for AI and dev infrastructure — credential, AI-tool config, and supply-chain detection",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     author="GitExpose Contributors",
     license="MIT",
     packages=find_packages(),
+    package_data={"gitexpose": ["data/*.json"]},
+    include_package_data=True,
     python_requires=">=3.9",
     install_requires=[
         "aiohttp>=3.9.0",

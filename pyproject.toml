@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gitexpose"
-version = "0.1.0"
-description = "Advanced security scanner for exposed files, vulnerable frameworks, AI infrastructure, and supply chain threats"
+version = "0.2.0"
+description = "Exposure intelligence for AI and dev infrastructure — credential, AI-tool config, and supply-chain detection"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
@@ -86,6 +86,9 @@ Changelog = "https://github.com/fevra-dev/GitExpose/releases"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["gitexpose*"]
+
+[tool.setuptools.package-data]
+gitexpose = ["data/*.json"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
