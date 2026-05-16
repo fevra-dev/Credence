@@ -2,16 +2,15 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
-![CVE](https://img.shields.io/badge/CVE--2025--55182-React2Shell-red.svg)
 
-**Advanced Security Scanner for the 2025 Threat Landscape**
+**Exposure intelligence for AI and dev infrastructure**
 
-*Detect exposed files, vulnerable frameworks, AI infrastructure, and supply chain threats*
+*Detect leaked credentials, exposed AI-tool configs, and supply-chain risk in the 2026 threat landscape*
 
-[Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation)
+[Features](#features) • [Installation](#installation) • [Quick Start](#quick-start) • [Coverage](docs/COVERAGE.md) • [Documentation](#documentation)
 
 </div>
 
@@ -19,17 +18,17 @@
 
 ## Overview
 
-GitExpose is a high-performance security scanner that goes beyond traditional sensitive file detection. Built to address **2025's evolving threat landscape**, it detects:
+GitExpose finds exposed credentials, sensitive AI-infrastructure configs, and supply-chain compromise indicators across web targets and local repositories.
 
 | Threat Category | What's Detected |
 |-----------------|-----------------|
-| **Exposed Files** | .git, .env, configs, backups, source maps |
-| **Framework Vulnerabilities** | React2Shell (CVE-2025-55182), Next.js misconfigs |
-| **ML Supply Chain** | Malicious pickle files, poisoned PyTorch models |
-| **AI Infrastructure** | Vector databases, system prompts, RAG configs |
-| **Invisible Code** | Unicode attacks, GlassWorm patterns, Trojan Source |
-| **Cloud Assets** | S3 buckets, Azure blobs, GCP storage |
-| **CI/CD Exposure** | GitHub Actions, GitLab CI, Jenkins configs |
+| **Credential exposure** | 23-provider matrix: OpenAI, Anthropic, Google, Groq, xAI, Hugging Face, Replicate, Perplexity, Pinecone, LangSmith, Stripe, GitHub, GitLab, Docker Hub, Discord, Slack, Telegram, Twilio, SendGrid, AWS, ElevenLabs, plus DB connection strings |
+| **Exposed AI-tool configs** | `.continue/`, `claude/.credentials.json`, MCP configs, LiteLLM proxy configs, CrewAI/AutoGen YAMLs, .NET appsettings build output |
+| **Supply-chain risk** | Unpinned AI middleware, known-malicious package versions (TeamPCP), slopsquatting, `.pth` persistence, AI agent C2 beacons, k8s exfiltration |
+| **Compliance metadata** | OWASP LLM Top 10 + MITRE ATLAS technique on every finding |
+| **HTTP target scanning** | `.git`, `.env`, source maps, framework misconfigs, exposed configs |
+
+See [docs/COVERAGE.md](docs/COVERAGE.md) for the full matrix.
 
 ---
 
@@ -37,19 +36,32 @@ GitExpose is a high-performance security scanner that goes beyond traditional se
 
 ### Core Scanning
 - **Async HTTP** with configurable concurrency (50-100+ requests)
-- **Signature validation** reduces false positives by 95%+
-- **Multiple outputs**: Console, JSON, CSV, HTML reports
-- **100+ detection patterns** across all categories
+- **Signature validation** to reduce false positives
+- **Multiple outputs**: console, JSON, CSV, HTML, **SARIF 2.1.0**
+- **OWASP LLM + MITRE ATLAS metadata** on every finding
 
-### Advanced Modules
-- **React2Shell Detector** - CVE-2025-55182 vulnerability scanning
-- **ML Model Scanner** - Pickle opcode analysis, PyTorch/TensorFlow detection
-- **LLM Exposure Scanner** - Vector DBs, prompts, API keys
-- **Unicode Detector** - Invisible characters, GlassWorm patterns
-- **Cloud Scanner** - Multi-cloud asset exposure
-- **API Discovery** - REST enumeration, GraphQL introspection
-- **Stealth Mode** - WAF detection and evasion
-- **MCP Server** - AI agent integration via Model Context Protocol
+### Credential Detection (`gitexpose ...`)
+- 23-provider regex matrix with context-bound patterns where needed
+- Paired-secret cluster detection: when ≥2 distinct secret types appear in the same file, GitExpose emits a single CRITICAL `credential_cluster` finding
+- Multi-provider-key file flagging: known aggregator paths (`OAI_CONFIG_LIST`, `litellm_config.yaml`, `.continue/agents/*.yaml`) get a CRITICAL multi-provider finding when ≥2 secret types are present
+
+### Local Supply-Chain Scanning (`gitexpose supply-chain <path>`)
+- Unpinned AI middleware (`litellm`, `langchain`, `openai`, etc.) flagged HIGH
+- Known-malicious package versions corpus (TeamPCP/LiteLLM, Telnyx, Xinference, etc.)
+- Slopsquatting detection — known LLM-hallucinated package names (USENIX 2025 research basis)
+- `.pth` persistence pattern (TeamPCP-class post-compromise indicator)
+- AI-agent C2 beacon detection (MITRE ATLAS AML.TA0015)
+- Kubernetes secret-exfiltration patterns
+
+### Advanced Modules (in `gitexpose/advanced/`)
+- React2Shell detector (CVE-2025-55182)
+- ML model supply-chain scanner (pickle opcode analysis)
+- LLM/RAG infrastructure exposure scanner
+- Invisible Unicode detector (GlassWorm patterns)
+- Cloud asset scanner (S3 / Azure Blob / GCS)
+- API endpoint discovery
+- WAF detection / stealth mode
+- MCP server (Model Context Protocol)
 
 ---
 
@@ -104,6 +116,9 @@ gitexpose llm-scan https://ai-app.com
 
 # Invisible Unicode detection
 gitexpose unicode-scan --file suspicious.js
+
+# Local supply-chain scan
+gitexpose supply-chain ./my-project
 ```
 
 ### Output Formats
@@ -116,6 +131,9 @@ gitexpose scan example.com --full-audit -o html --out-file report.html
 
 # CSV for spreadsheets
 gitexpose -f targets.txt -o csv --out-file results.csv
+
+# SARIF 2.1.0 (for GitHub Advanced Security, VS Code, etc.)
+gitexpose example.com -o sarif --out-file results.sarif
 ```
 
 ---
@@ -156,7 +174,9 @@ gitexpose mcp
 
 ## Detection Coverage
 
-| Category | Patterns | Severity |
+See [docs/COVERAGE.md](docs/COVERAGE.md) for the full detection matrix.
+
+| Category | Examples | Severity |
 |----------|----------|----------|
 | **Git Repositories** | .git/config, HEAD, index | Critical |
 | **Environment Files** | .env, .env.production | Critical |
@@ -164,7 +184,8 @@ gitexpose mcp
 | **Backups** | backup.sql, database.dump | Critical |
 | **Source Maps** | *.js.map, webpack bundles | High |
 | **ML Models** | .pkl, .pt, .h5 | Critical |
-| **AI/LLM** | Vector DBs, prompts, API keys | Critical |
+| **AI/LLM Configs** | Vector DBs, MCP configs, API keys | Critical |
+| **Supply Chain** | Malicious packages, unpinned deps | High–Critical |
 
 ---
 
@@ -174,24 +195,51 @@ gitexpose mcp
 gitexpose/
 ├── gitexpose/
 │   ├── __init__.py          # Main package
-│   ├── cli.py                # CLI interface
-│   ├── scanner.py            # Core scanning engine
+│   ├── cli.py               # CLI interface
+│   ├── scanner.py           # Core scanning engine
+│   ├── models.py            # Data models
+│   ├── paths.py             # AI-tool config path detection
+│   ├── signatures.py        # Detection signatures
 │   │
-│   ├── advanced/             # Advanced security modules
+│   ├── advanced/            # Advanced security modules
 │   │   ├── react2shell_detector.py
 │   │   ├── ml_model_scanner.py
 │   │   ├── llm_exposure_scanner.py
 │   │   ├── invisible_unicode_detector.py
+│   │   ├── supply_chain_patterns.py
+│   │   ├── local_fs_scanner.py
+│   │   ├── credential_cluster.py
+│   │   ├── slopsquatting.py
+│   │   ├── known_bad_versions.py
+│   │   ├── dependency_pinning.py
 │   │   └── mcp_server.py
 │   │
-│   ├── git/                  # Git analysis
-│   ├── secrets/              # Credential extraction
-│   └── reporters/            # Output formatters
+│   ├── core/                # Core detection engine
+│   ├── git/                 # Git analysis
+│   ├── secrets/             # Credential extraction
+│   └── reporters/           # Output formatters (console, JSON, CSV, HTML, SARIF)
 │
-├── docs/                     # Documentation
-├── tests/                    # Test suite
+├── docs/                    # Documentation
+├── tests/                   # Test suite (122 tests)
 └── requirements.txt
 ```
+
+---
+
+## Roadmap (not yet implemented)
+
+The following are designed but not shipping in v0.2. Track via GitHub issues.
+
+- ML-powered anomaly detection engine
+- Runtime monitoring proxy (Pipelock-style)
+- Plugin architecture for custom detection rules
+- Web dashboard / REST API
+- Package pre-installation verification CLI
+- IDE plugins (VS Code, JetBrains)
+- Live external threat-intelligence enrichment
+- Full MITRE ATLAS coverage map document (metadata ships in v0.2; full coverage doc is v0.3)
+- Audio steganography detection (Telnyx-class)
+- Browser-agent misuse patterns
 
 ---
 
@@ -217,6 +265,8 @@ Built on current threat intelligence:
 | ML Poisoning | nullifAI research | Arbitrary code execution |
 | GlassWorm | VS Code supply chain | Self-propagating worm |
 | RAG Poisoning | OWASP LLM Top 10 | AI manipulation |
+| Slopsquatting | USENIX 2025 | LLM-hallucinated package abuse |
+| TeamPCP | Supply-chain incident | .pth persistence + data exfil |
 
 ---
 
@@ -238,6 +288,6 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-**Built for security researchers defending against the 2025 threat landscape**
+**Built for security researchers defending AI and developer infrastructure**
 
 </div>
