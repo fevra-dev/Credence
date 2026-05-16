@@ -78,6 +78,8 @@ venv.bak/
 !docs/*.html
 !gitexpose/data/*.json
 !tests/fixtures/*.json
+!tests/fixtures/synthetic_repo/**/*.json
+!tests/fixtures/synthetic_repo/.continue/
 
 # Git dumps
 git-dumps/

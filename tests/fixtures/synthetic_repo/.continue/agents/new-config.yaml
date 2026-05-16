@@ -1,0 +1,5 @@
+models:
+  - name: groq
+    apiKey: gsk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  - name: openai
+    apiKey: sk-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
