@@ -64,6 +64,18 @@ def test_supply_chain_handles_synthetic_repo_e2e():
     assert "groq_api_key" in result.output
 
 
+def test_supply_chain_renders_severity_for_v01_findings(tmp_path: Path):
+    """Regression: v0.1 secret-dicts have severity=None.
+    Output must render 'UNKNOWN' (or similar), not the literal '[None]'."""
+    # generic_api_key is a v0.1 pattern that emits with severity=None
+    (tmp_path / "config.py").write_text(
+        'api_key = "abcdefghijklmnopqrstuvwxyz1234567890"\n'
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["supply-chain", str(tmp_path)])
+    assert "[None]" not in result.output, f"Severity rendered as literal None: {result.output}"
+
+
 def test_main_cli_accepts_sarif_output_format():
     """`gitexpose --help` lists sarif as an output choice."""
     from click.testing import CliRunner

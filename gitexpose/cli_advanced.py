@@ -838,9 +838,9 @@ def supply_chain(path: str, output: str, out_file: str):
         else:
             lines = [f"🔍 {len(findings)} supply-chain finding(s) in {path}:"]
             for f in findings:
-                sev = f.get("severity", "?")
-                ftype = f.get("type", "?")
-                src = f.get("source", "")
+                sev = f.get("severity") or "UNKNOWN"
+                ftype = f.get("type") or "unknown"
+                src = f.get("source") or ""
                 desc = next(iter((f.get("description") or "").splitlines()), "")
                 lines.append(f"  [{sev}] {ftype}  ({src})")
                 if desc:
