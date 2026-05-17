@@ -31,6 +31,39 @@ def test_supply_chain_clean_dir_yields_no_findings(tmp_path: Path):
     assert "No supply-chain" in result.output
 
 
+def test_supply_chain_handles_findings_with_no_description(tmp_path: Path):
+    """Regression: SecretExtractor findings don't carry a description field.
+    The console renderer was crashing with IndexError on ''.splitlines()[0]."""
+    # Plant a secret that SecretExtractor will find but that has no description field
+    (tmp_path / "config.py").write_text(
+        "GROQ_API_KEY = 'gsk_" + "a" * 52 + "'\n"
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["supply-chain", str(tmp_path)])
+    # Must not crash — a real crash raises a non-SystemExit exception
+    assert not result.exception or isinstance(result.exception, SystemExit), (
+        f"Crashed: {result.exception}"
+    )
+    assert result.exit_code == 1, f"Expected findings (exit 1): {result.output}"
+    assert "groq_api_key" in result.output
+
+
+def test_supply_chain_handles_synthetic_repo_e2e():
+    """Regression: scanning the synthetic_repo fixture must not crash.
+    This is the manual-verification-equivalent test."""
+    fixture = Path(__file__).parent / "fixtures" / "synthetic_repo"
+    runner = CliRunner()
+    result = runner.invoke(cli, ["supply-chain", str(fixture)])
+    # Must not crash — a real crash raises a non-SystemExit exception
+    assert not result.exception or isinstance(result.exception, SystemExit), (
+        f"Crashed: {result.exception}"
+    )
+    assert result.exit_code == 1
+    # Verify representative findings render in output
+    assert "litellm" in result.output
+    assert "groq_api_key" in result.output
+
+
 def test_main_cli_accepts_sarif_output_format():
     """`gitexpose --help` lists sarif as an output choice."""
     from click.testing import CliRunner

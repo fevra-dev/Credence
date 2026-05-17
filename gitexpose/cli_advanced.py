@@ -841,7 +841,7 @@ def supply_chain(path: str, output: str, out_file: str):
                 sev = f.get("severity", "?")
                 ftype = f.get("type", "?")
                 src = f.get("source", "")
-                desc = (f.get("description") or "").splitlines()[0]
+                desc = next(iter((f.get("description") or "").splitlines()), "")
                 lines.append(f"  [{sev}] {ftype}  ({src})")
                 if desc:
                     lines.append(f"     {desc}")
