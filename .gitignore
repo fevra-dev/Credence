@@ -93,3 +93,12 @@ extracted/
 
 # Archived files
 move_git/
+
+# v0.3 cleanup — workspace artifacts that should not be tracked
+.serena/
+RESEARCH/
+files/
+files (1)/
+Gemini_Generated_Image_*.png
+uv.lock
+.venv/
