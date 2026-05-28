@@ -41,7 +41,6 @@ classifiers = [
     "Topic :: System :: Networking :: Monitoring",
 ]
 dependencies = [
-    "aiofiles>=25.1.0",
     "aiohttp>=3.9.0",
     "click>=8.1.0",
     "colorama>=0.4.6",
