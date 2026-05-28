@@ -10,10 +10,12 @@ from __future__ import annotations
 
 from .llm import LLM_VERIFIERS
 from .code import CODE_VERIFIERS
+from . import docker
 
 VERIFIERS = {
     **LLM_VERIFIERS,
     **CODE_VERIFIERS,
+    "docker_hub_pat": docker.verify,
 }
 
 __all__ = ["VERIFIERS"]
