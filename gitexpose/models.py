@@ -63,7 +63,7 @@ class ScanResult:
     attack_class: Optional[str] = None  # OWASP LLM Top 10 ID, e.g. "LLM06"
     atlas_technique: Optional[str] = None  # MITRE ATLAS technique, e.g. "AML.T0019"
     # v0.3 additions: active verification
-    verification_status: str = "skipped"   # one of: verified, dead, error, skipped, unverifiable
+    verification_status: str = "skipped"  # one of: verified, dead, error, skipped, unverifiable
     verification_detail: Optional[str] = None  # short reason: "200", "401", "timeout", etc.
 
 

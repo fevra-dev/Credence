@@ -6,7 +6,7 @@ from gitexpose.models import Category, ScanResult, Severity
 from gitexpose.secrets.secret_extractor import SecretExtractor
 
 
-def test_scan_result_has_optional_verification_status():
+def test_scan_result_verification_status_can_be_set():
     result = ScanResult(
         url="https://example.com/.env",
         path=".env",
@@ -47,5 +47,15 @@ def test_secret_dict_has_verification_keys():
     for s in secrets:
         assert "verification_status" in s
         assert "verification_detail" in s
+        assert s["verification_status"] == "skipped"
+        assert s["verification_detail"] is None
+
+
+def test_secret_dict_v01_path_has_verification_keys():
+    """Guard the v0.1 PATTERNS code path — AWS access key triggers v0.1 only."""
+    extractor = SecretExtractor()
+    secrets = asyncio.run(extractor.extract("key=AKIAIOSFODNN7EXAMPLEKEY"))
+    assert secrets
+    for s in secrets:
         assert s["verification_status"] == "skipped"
         assert s["verification_detail"] is None
