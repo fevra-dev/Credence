@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List
 
 from ..secrets.secret_extractor import SecretExtractor
+from . import skill_security
 from .dependency_pinning import DependencyPinningScanner
 from .known_bad_versions import scan_requirements as scan_known_bad
 from .slopsquatting import scan_requirements as scan_slopsquats
@@ -56,9 +57,11 @@ class LocalFilesystemScanner:
             except OSError as exc:
                 logger.debug("Skipping unreadable file %s: %s", path, exc)
                 continue
-            if "\x00" in content[:1024]:
-                continue  # binary
             relative = str(path.relative_to(root))
+            # Polyglot detector reads raw bytes — runs even when content has null bytes.
+            findings.extend(skill_security.detect_polyglot(path))
+            if "\x00" in content[:1024]:
+                continue  # binary — skip text-based detectors
             findings.extend(self._scan_content(content, relative, path.name))
         # v0.2 — cluster post-processor adds blast-radius findings
         from .credential_cluster import process as cluster_process
@@ -105,5 +108,9 @@ class LocalFilesystemScanner:
 
         # Supply-chain patterns (any text file)
         out.extend(scan_supply_patterns(content, filename=basename, source=relative))
+
+        # AI-supply-chain: skill/prompt injection and agent config content
+        out.extend(skill_security.scan_skill_injection(relative, content))
+        out.extend(skill_security.scan_agent_config_content(relative, content))
 
         return out
