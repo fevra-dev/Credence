@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.4.0 — 2026-05-28 — Detection Depth
+
+### Added
+- **`gitexpose git-history <path>`** — scans all reachable git history (`git log -p --all --reverse`) for credentials committed and later removed, reusing the full credential matrix. Each secret is reported once at its earliest-introducing commit, with commit SHA / author / date. Composes with `--verify`: a historical secret can be reported `verified`/`dead`/`error` — "deleted N commits ago, confirmed live." Flags: `-o/--output`, `--out-file`, `--since`, `--max-commits`, and the `--verify*` family.
+- **AI-supply-chain signature pack** (working-tree, via `supply-chain`):
+    - `polyglot_file` (HIGH) — text-extension file whose leading bytes are a binary/executable/archive signature (ELF, PE, ZIP, PDF, Mach-O, gzip). Built-in magic-byte detection — no external dependency.
+    - `skill_prompt_injection` (HIGH, LLM01) — hidden directives in instruction files (CLAUDE.md/AGENTS.md/.continue/…): "ignore previous instructions", exfil directives, system-prompt-reveal attempts.
+    - `agent_config_malicious_content` (CRITICAL) — command/exfil payloads inside CrewAI/AutoGen/litellm configs.
+    - `langgrinch_lc_key` (CRITICAL) — heuristic pattern for LangChain `lc-`-prefixed credentials (LangGrinch / CVE-2025-68664 context; upstream key format not authoritatively confirmed).
+- **AWS access+secret pairing** — same-source `aws_access_key` + `aws_secret_key` findings are paired into `ACCESS:SECRET` so AWS keys now verify live (previously always ERROR). Applies to both `supply-chain --verify` and `git-history --verify`.
+- Shared `add_verify_args` Click decorator (reused by `supply-chain` and `git-history`).
+
+### Changed
+- New OPTIONAL dependency: `python-magic>=0.4.27` (advanced extra; reserved for future richer format detection — the polyglot detector itself uses built-in magic bytes and needs no system lib).
+- Test count grew from 251 (v0.3.0) to 287 (v0.4.0).
+- Internal `_verify_input` (the paired AWS secret) is scrubbed from all command output.
+
+### Fixed
+- The v0.3 smoke-test fixture (`tests/fixtures/synthetic_repo_v03/.env`) was never tracked — the generic `.env` gitignore rule silently dropped it at commit time, so `test_smoke_v03` was red on clean checkouts. It is now tracked via a gitignore negation.
+
+### Deferred to v0.5
+- AI-BOM (`--format aibom`) structured security inventory
+- Policy engine + tamper-evident audit log
+- Unreachable/dangling-blob history walk (force-pushed-away secrets)
+- Additional provider verifiers (Discord/Telegram/Twilio/SendGrid/Stripe)
+- `--verify` on the web-scan path; capability/scope enumeration
+
 ## v0.3.0 — 2026-05-28 — Active Verification
 
 ### Added
