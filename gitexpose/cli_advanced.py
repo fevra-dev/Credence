@@ -818,21 +818,32 @@ def list_tools():
             print(f"  {cmd:15} - {desc} ({opts})")
 
 
+def add_verify_args(func):
+    """Attach the v0.3 --verify* options to a Click command. Shared by
+    supply-chain and git-history so the flag set stays identical."""
+    options = [
+        click.option("--verify", is_flag=True, default=False,
+                     help="Send candidate credentials to provider APIs for liveness check (opt-in)."),
+        click.option("--verify-concurrency", type=int, default=5, metavar="N",
+                     help="Max concurrent verification requests (default: 5)."),
+        click.option("--verify-timeout", type=float, default=5.0, metavar="SECONDS",
+                     help="Per-request verification timeout (default: 5.0)."),
+        click.option("--verify-only-severity",
+                     type=click.Choice(["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]),
+                     default=None, help="Only verify findings whose severity is >= LEVEL."),
+        click.option("--no-verify-banner", is_flag=True, default=False,
+                     help="Suppress the consent banner printed when --verify is active."),
+    ]
+    for option in reversed(options):
+        func = option(func)
+    return func
+
+
 @cli.command("supply-chain")
 @click.argument("path", type=click.Path(exists=True, file_okay=False, dir_okay=True))
 @click.option("-o", "--output", type=click.Choice(["console", "json"]), default="console")
 @click.option("--out-file", type=click.Path(), help="Write output to file instead of stdout")
-@click.option("--verify", is_flag=True, default=False,
-              help="Send candidate credentials to provider APIs for liveness check (opt-in).")
-@click.option("--verify-concurrency", type=int, default=5, metavar="N",
-              help="Max concurrent verification requests (default: 5).")
-@click.option("--verify-timeout", type=float, default=5.0, metavar="SECONDS",
-              help="Per-request verification timeout (default: 5.0).")
-@click.option("--verify-only-severity",
-              type=click.Choice(["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]), default=None,
-              help="Only verify findings whose severity is >= LEVEL.")
-@click.option("--no-verify-banner", is_flag=True, default=False,
-              help="Suppress the consent banner printed when --verify is active.")
+@add_verify_args
 def supply_chain(path: str, output: str, out_file: str, verify: bool,
                  verify_concurrency: int, verify_timeout: float,
                  verify_only_severity: str, no_verify_banner: bool):
