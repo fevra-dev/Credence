@@ -75,6 +75,8 @@ class SecretExtractor:
                         'atlas_technique': None,
                         'severity': None,
                         'category': None,
+                        'verification_status': 'skipped',
+                        'verification_detail': None,
                     }
                     if self.validate and self.validator:
                         is_valid = await self.validator.validate(secret_type, secret_value)
@@ -109,6 +111,8 @@ class SecretExtractor:
                         'atlas_technique': pat.atlas_technique,
                         'severity': pat.severity,
                         'category': pat.category,
+                        'verification_status': 'skipped',
+                        'verification_detail': None,
                     })
             except Exception as e:
                 logger.debug(f"Error extracting v02 pattern {pat.name}: {e}")
