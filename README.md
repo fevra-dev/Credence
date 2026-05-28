@@ -32,6 +32,31 @@ See [docs/COVERAGE.md](docs/COVERAGE.md) for the full matrix.
 
 ---
 
+## Why this matters
+
+In May 2026, KrebsOnSecurity and GitGuardian reported on a public GitHub
+repository named `Private-CISA`. The repo, created by a CISA contractor in
+November 2025, contained 844 MB of operational material: CI/CD logs,
+Kubernetes manifests, Terraform code, GitHub workflows, internal docs, AWS
+GovCloud admin credentials, and plaintext passwords for internal systems.
+
+This is the threat model GitExpose is built for. GitHub is the production
+perimeter, and one careless commit can publish keys, infrastructure maps, and
+operational secrets to attackers who never needed a zero-day.
+
+GitExpose v0.3 adds **active credential verification** — instead of just
+flagging that a string looks like an OpenAI key or an AWS access key, it
+confirms whether that credential is live by sending a low-footprint
+authentication check to the provider. Live keys get flagged as `verified-live`
+in SARIF output and surface as the highest-confidence alerts in GitHub Code
+Scanning.
+
+References:
+- [KrebsOnSecurity: CISA contractor leak](https://krebsonsecurity.com/) (May 2026)
+- [GitGuardian incident analysis](https://blog.gitguardian.com/)
+
+---
+
 ## Features
 
 ### Core Scanning
