@@ -822,12 +822,54 @@ def list_tools():
 @click.argument("path", type=click.Path(exists=True, file_okay=False, dir_okay=True))
 @click.option("-o", "--output", type=click.Choice(["console", "json"]), default="console")
 @click.option("--out-file", type=click.Path(), help="Write output to file instead of stdout")
-def supply_chain(path: str, output: str, out_file: str):
+@click.option("--verify", is_flag=True, default=False,
+              help="Send candidate credentials to provider APIs for liveness check (opt-in).")
+@click.option("--verify-concurrency", type=int, default=5, metavar="N",
+              help="Max concurrent verification requests (default: 5).")
+@click.option("--verify-timeout", type=float, default=5.0, metavar="SECONDS",
+              help="Per-request verification timeout (default: 5.0).")
+@click.option("--verify-only-severity",
+              type=click.Choice(["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]), default=None,
+              help="Only verify findings whose severity is >= LEVEL.")
+@click.option("--no-verify-banner", is_flag=True, default=False,
+              help="Suppress the consent banner printed when --verify is active.")
+def supply_chain(path: str, output: str, out_file: str, verify: bool,
+                 verify_concurrency: int, verify_timeout: float,
+                 verify_only_severity: str, no_verify_banner: bool):
     """Scan a local directory for supply-chain risks (TeamPCP-class)."""
     from .advanced.local_fs_scanner import LocalFilesystemScanner
 
     scanner = LocalFilesystemScanner()
     findings = scanner.scan(Path(path))
+
+    # Ensure every finding dict carries verification_status (non-credential scanners
+    # such as dependency_pinning do not set this key; treat absent as "skipped").
+    for f in findings:
+        f.setdefault("verification_status", "skipped")
+        f.setdefault("verification_detail", None)
+
+    if verify:
+        import asyncio as _asyncio
+        from gitexpose.verification import verify_secrets
+        from gitexpose.verification.banner import print_verify_banner
+
+        print_verify_banner(suppress=no_verify_banner)
+
+        to_verify = findings
+        if verify_only_severity:
+            _order = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "INFO": 0}
+            _floor = _order[verify_only_severity]
+            to_verify = [
+                f for f in findings
+                if _order.get((f.get("severity") or "INFO").upper(), 0) >= _floor
+            ]
+        _asyncio.run(verify_secrets(
+            to_verify,
+            concurrency=verify_concurrency,
+            timeout=verify_timeout,
+        ))
+        # findings dicts are mutated in-place; findings not in to_verify keep
+        # verification_status == "skipped" (set by setdefault above).
 
     if output == "json":
         import json as _json
