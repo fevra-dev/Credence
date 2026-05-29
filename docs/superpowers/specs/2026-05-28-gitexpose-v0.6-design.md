@@ -103,16 +103,19 @@ class Grant:
 
 ## 4. Capability taxonomy
 
-| Class | Trigger examples | Base severity |
-|---|---|---|
-| `SHELL_EXEC` | MCP `command` ∈ {bash, sh, zsh, fish, cmd, powershell, `python -c`, `node -e`}; `Bash`/`Shell`/`Terminal` allow | CRITICAL |
-| `CODE_EVAL` | code-interpreter / eval tools; `python`/`node` REPL servers | HIGH |
-| `SECRET_ACCESS` | MCP `env` passthrough of `*_KEY`/`*_TOKEN`/`*_SECRET`; `Read` of `.env*`; secret-manager servers | HIGH |
-| `NETWORK_FETCH` | `WebFetch`/`fetch`/`curl`/`http` tools; fetch/web MCP servers | HIGH |
-| `FILESYSTEM_WRITE` | `Write`/`Edit`/`MultiEdit`; filesystem-write MCP servers | MEDIUM |
-| `DATABASE` | postgres/mysql/sqlite MCP servers | MEDIUM |
-| `BROWSER_CONTROL` | playwright/puppeteer/browser MCP servers | MEDIUM |
-| `UNRESTRICTED` | `*`, `Bash(*)`, allow-list present with empty/absent deny-list | CRITICAL |
+| Class | Trigger examples | Base severity | MITRE ATT&CK |
+|---|---|---|---|
+| `SHELL_EXEC` | MCP `command` ∈ {bash, sh, zsh, fish, cmd, powershell, `python -c`, `node -e`}; `Bash`/`Shell`/`Terminal` allow | CRITICAL | T1059 Command & Scripting Interpreter |
+| `CODE_EVAL` | code-interpreter / eval tools; `python`/`node` REPL servers | HIGH | T1059 (T1059.006 Python) |
+| `SECRET_ACCESS` | MCP `env` passthrough of `*_KEY`/`*_TOKEN`/`*_SECRET`; `Read` of `.env*`; secret-manager servers | HIGH | T1552 Unsecured Credentials |
+| `NETWORK_FETCH` | `WebFetch`/`fetch`/`curl`/`http` tools; fetch/web MCP servers | HIGH | T1071.001 Web Protocols |
+| `FILESYSTEM_WRITE` | `Write`/`Edit`/`MultiEdit`; filesystem-write MCP servers | MEDIUM | T1105 Ingress Tool Transfer |
+| `DATABASE` | postgres/mysql/sqlite MCP servers | MEDIUM | T1213 Data from Information Repositories |
+| `BROWSER_CONTROL` | playwright/puppeteer/browser MCP servers | MEDIUM | T1185 Browser Session Hijacking |
+| `UNRESTRICTED` | `*`, `Bash(*)`, allow-list present with empty/absent deny-list | CRITICAL | (posture; inherits the underlying class's technique) |
+
+The combination/exfil-chain escalation (`SHELL_EXEC`/`CODE_EVAL` + `NETWORK_FETCH`/`SECRET_ACCESS`) maps
+to **T1041 Exfiltration Over C2 Channel** (tactic TA0010 Exfiltration).
 
 **Classification:** `classify(grant) -> set[CapabilityClass]` via a known-tool map + command/pattern
 matching. A benign grant (read-only docs server, no shell, no wildcard) returns the empty set → no
@@ -143,8 +146,10 @@ deny-entry produces no finding (the deny neutralizes it).
   "description": "MCP server 'shell' is wired to an arbitrary shell command — an agent using it can run any command on the host.",
   "recommendation": "Remove the server or restrict it to a fixed allow-listed binary; add an explicit deny.",
   "attack_class": "OWASP LLM08 Excessive Agency",
-  "atlas_technique": "AML.T0053",        // LLM Plugin Compromise — verify against current ATLAS during impl
-  "exfil_chain": ["shell_exec", "network_fetch"]   // only on combination-escalated findings
+  "atlas_technique": "AML.T0053",        // AI Agent Tool Invocation (verified vs live ATLAS)
+  "mitre_attack": "T1059",               // derived from capability_class (see §4 table)
+  "exfil_chain": ["shell_exec", "network_fetch"],   // only on combination-escalated findings
+  "exfil_attack": "T1041"                // present only with exfil_chain (Exfiltration Over C2)
 }
 ```
 
@@ -160,12 +165,28 @@ deny-entry produces no finding (the deny neutralizes it).
   "description": "Matches the known-leaked system prompt of <product> (CL4R1T4S corpus) — exposing its guardrails and granted tool permissions.",
   "recommendation": "If this is your product's prompt, treat it as leaked (rotate embedded secrets/tools, assume guardrails are known). If a copied third-party prompt, remove it.",
   "attack_class": "OWASP LLM07 System Prompt Leakage",
-  "atlas_technique": "AML.T0054"         // LLM Meta Prompt Extraction — verify during impl
+  "atlas_technique": "AML.T0056",        // LLM Meta Prompt Extraction (verified vs live ATLAS)
+  "mitre_attack": "T1552.001"            // Credentials In Files (a leaked prompt is unsecured config/IP on disk)
 }
 ```
 
 Both keep GitExpose's finding-dict convention (`severity`/`source`/`attack_class`/`atlas_technique`)
-so they render through the same console/json paths.
+so they render through the same console/json paths, and add a new **`mitre_attack`** field.
+
+**Compliance mapping — verified triple (OWASP LLM Top 10 + MITRE ATLAS + MITRE ATT&CK):**
+- `attack_class` — OWASP LLM Top 10 (LLM08 Excessive Agency / LLM07 System Prompt Leakage).
+- `atlas_technique` — MITRE ATLAS, **verified against the live matrix** (2026-05): `AML.T0053`
+  *AI Agent Tool Invocation* for `excessive_agent_capability`; `AML.T0056` *LLM Meta Prompt
+  Extraction* for `exposed_system_prompt`. (My initial spec guessed `AML.T0053 "LLM Plugin
+  Compromise"` and `AML.T0054`; the live matrix corrected the name and showed `AML.T0054` is
+  *LLM Jailbreak* — fixed.)
+- `mitre_attack` — MITRE ATT&CK technique, **derived per `capability_class`** from the §4 table,
+  extending the project's existing ATT&CK convention (the f0rge ATT&CK v19 wiki already maps
+  GitExpose secret-scanning → `T1552`/`T1552.001`, supply-chain → `T1195`). The console reporter
+  shows all three on one `📋` line; JSON carries all three keys.
+
+*(Optional follow-up, out of v0.6 scope: retrofit `mitre_attack` onto existing v0.2–v0.5 findings —
+secret-scan `T1552`, supply-chain `T1195` — for project-wide ATT&CK coverage. Tracked in §11.)*
 
 ## 6. System-prompt pillar — CL4R1T4S fingerprints
 
@@ -237,6 +258,9 @@ The command is **separate from `supply-chain`** (category clarity: deps vs. agen
   no finding.
 - **Taxonomy/classify** — each `CapabilityClass`; wildcard escalation; combination escalation
   (`SHELL_EXEC`+`NETWORK_FETCH` → CRITICAL with `exfil_chain`).
+- **Compliance mapping** — each `CapabilityClass` resolves to the expected `mitre_attack` ID
+  (SHELL_EXEC→T1059, SECRET_ACCESS→T1552, NETWORK_FETCH→T1071.001, …); finding types carry the
+  verified `atlas_technique` (AML.T0053 / AML.T0056) and OWASP `attack_class`.
 - **System-prompt matcher** — planted known-leak text → match at expected strength; benign prompt
   text → no match (FP guard); light-reformat robustness (shingle overlap holds).
 - **CLI** — `agent-audit` console/json, severity ordering, exit codes, malformed-config resilience.
@@ -260,5 +284,7 @@ pytest tests/`), not `uv run`.
 - CrewAI / AutoGen / LangChain framework-grant adapters.
 - Heuristic (non-fingerprint) system-prompt detection.
 - SARIF output for agent-exposure findings.
+- Retrofit `mitre_attack` onto existing v0.2–v0.5 findings (secret-scan → `T1552`, supply-chain →
+  `T1195`) for project-wide ATT&CK coverage (per the f0rge ATT&CK v19 wiki's GitExpose mapping).
 - Carried from v0.5: classic typosquatting, lock-file poisoning checks, Shai-Hulud install-time
   behavioral analysis, Go/Cargo SCA, policy engine, `--verify` on web-scan path, AI canary tokens.
