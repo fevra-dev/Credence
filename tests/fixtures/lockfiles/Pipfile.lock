@@ -1,0 +1,10 @@
+{
+  "_meta": {"hash": {"sha256": "deadbeef"}},
+  "default": {
+    "requests": {"version": "==2.31.0", "hashes": ["sha256:aaa"]},
+    "urllib3": {"version": "==2.0.7"}
+  },
+  "develop": {
+    "pytest": {"version": "==7.4.0"}
+  }
+}
