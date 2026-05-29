@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.5.1 — 2026-05-28 — Supply-Chain Intelligence (hardening)
+
+### Fixed
+- **Verification request amplification** — identical secrets gathered concurrently each fired an outbound auth request to the provider (the in-run dedup populated its cache only after the `await`). Now collapses to a single request per distinct secret via an await-once pattern. Also resolves cross-Python-version flakiness in the dedup test.
+- **OSV robustness** — a malformed-but-200 OSV response (non-JSON body or unexpected shape) crashed the `supply-chain` scan instead of degrading to the curated list; per-batch and per-vuln parsing is now guarded (spec §9).
+- **CI / Click ≥8.2 compatibility** — the v0.5 CLI/smoke tests used `CliRunner(mix_stderr=)`, which Click 8.2 removed (CI installs it on Python 3.10+); switched to `--no-verify-banner` so parsed stdout stays clean on every Click version.
+- **Version-fragile test** — `test_status_is_string_enum` asserted the Python-3.12 `(str, Enum).__str__` output; now asserts the version-stable JSON-serialization contract.
+
+### Security (hardening — focused /attack pass on the v0.5 egress surface)
+- URL-encode OSV-provided vuln IDs before interpolating them into the hydration URL path.
+- Cap total OSV vuln-hydration fan-out to `--osv-max` (a dependency with many advisories — or a hostile OSV — can no longer amplify into unbounded outbound requests).
+- Skip lock files larger than 1 MB in `parse_all` (mirrors `LocalFilesystemScanner`).
+- Clamp `--osv-max` (≥0) and `--osv-timeout` (≥0.1).
+
 ## v0.5.0 — 2026-05-28 — Supply-Chain Intelligence
 
 ### Added
