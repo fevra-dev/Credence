@@ -3,6 +3,9 @@ aiohttp>=3.9.0
 click>=8.1.0
 colorama>=0.4.6
 httpx>=0.27.0
+cyclonedx-python-lib>=8.0.0
+packageurl-python>=0.15.0
+tomli>=2.0.0; python_version < "3.11"
 
 # Advanced Features (optional but recommended)
 aiofiles>=23.2.0
