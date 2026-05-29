@@ -21,3 +21,25 @@ def test_make_purl_npm_scoped():
     # scoped npm names encode the scope as a PURL namespace
     purl = make_purl("@angular/core", "17.0.0", "npm")
     assert purl == "pkg:npm/%40angular/core@17.0.0"
+
+
+from pathlib import Path
+
+from gitexpose.supply_chain.lockfiles import parse_all
+
+
+def test_parse_all_walks_mixed_repo(tmp_path: Path):
+    (tmp_path / "requirements.txt").write_text("requests==2.31.0\n")
+    (tmp_path / "package-lock.json").write_text(
+        '{"lockfileVersion":3,"packages":{"":{},'
+        '"node_modules/lodash":{"version":"4.17.21"}}}'
+    )
+    # ignored: inside a skip-dir
+    (tmp_path / "node_modules").mkdir()
+    (tmp_path / "node_modules" / "requirements.txt").write_text("evil==6.6.6\n")
+
+    deps = parse_all(tmp_path)
+    names = {d.name for d in deps}
+    assert "requests" in names
+    assert "lodash" in names
+    assert "evil" not in names   # node_modules is skipped
