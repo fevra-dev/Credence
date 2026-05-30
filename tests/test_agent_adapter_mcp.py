@@ -45,3 +45,10 @@ def test_mcp_command_args_captured_for_eval_detection():
 
 def test_mcp_malformed_json_returns_empty():
     assert parse_mcp("{not json", "mcp.json") == []
+
+
+def test_registry_has_both_families():
+    import gitexpose.agent_exposure.adapters  # noqa: F401
+    from gitexpose.agent_exposure.adapters.base import ADAPTERS
+    assert "mcp.json" in ADAPTERS
+    assert "settings.json" in ADAPTERS

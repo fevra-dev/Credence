@@ -2,6 +2,7 @@
 
 from . import base  # noqa: F401
 from . import mcp  # noqa: F401  (registers mcp.json family)
+from . import permissions  # noqa: F401  (registers .claude/settings.json family)
 
 from .base import ADAPTERS, adapter_for
 
