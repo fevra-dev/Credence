@@ -1109,7 +1109,11 @@ git commit -m "feat(v0.6): system-prompt fingerprint matcher + seed + generator"
 
 ```python
 def test_scan_merges_capability_and_prompt_findings(tmp_path, monkeypatch):
-    from gitexpose.agent_exposure import scan as scan_mod
+    # grab the module object unambiguously — `from ... import scan` would resolve to
+    # the re-exported scan() *function* (see __init__ in Step 4), not the module we
+    # need to monkeypatch. importlib.import_module returns the real module object.
+    import importlib
+    scan_mod = importlib.import_module("gitexpose.agent_exposure.scan")
     from gitexpose.agent_exposure.system_prompt import build_shingles
 
     # an over-permissioned MCP config
