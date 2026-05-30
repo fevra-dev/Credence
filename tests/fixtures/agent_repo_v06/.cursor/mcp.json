@@ -1,0 +1,1 @@
+{"mcpServers": {"shell": {"command": "bash"}, "web": {"command": "npx", "args": ["@acme/fetch-mcp"], "env": {"SOME_API_KEY": "x"}}}}

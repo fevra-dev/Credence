@@ -89,6 +89,10 @@ venv.bak/
 # gitignore rules; negate the SCA fixture dir so parser tests pass on clean checkouts.
 !tests/fixtures/lockfiles/
 !tests/fixtures/lockfiles/**
+# v0.6 agent-exposure fixtures: .cursor/mcp.json + .claude/settings.json are dropped
+# by the generic *.json rule; negate the fixture dir so the smoke test passes clean.
+!tests/fixtures/agent_repo_v06/
+!tests/fixtures/agent_repo_v06/**
 
 # Git dumps
 git-dumps/
