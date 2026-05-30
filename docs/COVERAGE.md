@@ -1,8 +1,8 @@
 # GitExpose Detection Coverage
 
-Last updated: v0.4
+Last updated: v0.6
 
-GitExpose detects credential exposure across **23 providers** in 5 categories, plus supply-chain risk indicators specific to AI infrastructure. Each finding carries OWASP LLM Top 10 (`attack_class`) and MITRE ATLAS technique (`atlas_technique`) metadata.
+GitExpose detects credential exposure across **23 providers** in 5 categories, plus supply-chain risk indicators specific to AI infrastructure, and AI-agent exposure (excessive tool permissions + leaked system prompts). Each finding carries OWASP LLM Top 10 (`attack_class`) and MITRE ATLAS technique (`atlas_technique`) metadata; agent-exposure findings additionally carry a MITRE ATT&CK technique (`mitre_attack`).
 
 ## Credential providers
 
@@ -131,6 +131,39 @@ When `supply-chain --verify` (or `git-history --verify`) detects both an `aws_ac
 
 Findings are ranked by **exploitability context** (credential-co-presence → known-exploited → direct → unpinned → fix-available → severity → CVSS), not raw CVSS. The CycloneDX 1.6 AI-BOM (`-o cyclonedx`) carries these as VEX entries; `analysis.state` is `exploitable` only when a co-present credential is `--verify`-confirmed live or OSV flags it known-exploited, else `in_triage`.
 
+## AI agent exposure (v0.6)
+
+`gitexpose agent-audit <path>` judges *what an AI agent is allowed to do* and detects committed/leaked system prompts. Pure static analysis — no network calls, no new runtime dependencies.
+
+**Config formats parsed** (via pluggable adapters):
+
+| Format family | Files | What's extracted |
+|---|---|---|
+| MCP server configs | `mcp.json`, `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json`, `claude_desktop_config.json` | per-server launch `command` + `args` (folded into evidence), `env` passthrough keys |
+| Claude-Code permission lists | `.claude/settings.json`, `.claude/settings.local.json` | `permissions.allow` entries (a matching `deny` neutralizes one) |
+
+**Dangerous-capability taxonomy** — each grant is classified into zero or more classes; a benign grant (read-only docs server, no wildcard) produces no finding:
+
+| `capability_class` | Base severity | MITRE ATT&CK |
+|---|---|---|
+| `shell_exec` | CRITICAL | `T1059` Command & Scripting Interpreter |
+| `code_eval` | HIGH | `T1059.006` (Python) |
+| `secret_access` | HIGH | `T1552` Unsecured Credentials |
+| `network_fetch` | HIGH | `T1071.001` Web Protocols |
+| `filesystem_write` | MEDIUM | `T1105` Ingress Tool Transfer |
+| `database` | MEDIUM | `T1213` Data from Information Repositories |
+| `browser_control` | MEDIUM | `T1185` Browser Session Hijacking |
+| `unrestricted` (explicit `*` / `Bash(*)`) | CRITICAL | `T1059` (posture) |
+
+**Escalation** — when execution (`shell_exec`/`code_eval`) co-occurs with egress (`network_fetch`/`secret_access`) in the same config, an extra CRITICAL `exfil_capable_agent` finding is emitted with an `exfil_chain` and `exfil_attack: T1041` (Exfiltration Over C2 Channel).
+
+| Finding type | Severity | Description |
+|---|---|---|
+| `excessive_agent_capability` | per taxonomy (CRITICAL/HIGH/MEDIUM) | An agent is granted a dangerous tool/capability. OWASP **LLM08** Excessive Agency; ATLAS **AML.T0053** AI Agent Tool Invocation; per-class `mitre_attack`. |
+| `exposed_system_prompt` | HIGH | Committed text matches a CL4R1T4S known-leaked system prompt (shingle-fingerprint overlap; hashes only, no prompt text vendored). OWASP **LLM07** System Prompt Leakage; ATLAS **AML.T0056** LLM Meta Prompt Extraction; `mitre_attack: T1552.001`. |
+
+The fingerprint seed (`gitexpose/agent_exposure/data/cl4r1t4s_fingerprints.json`) ships empty-but-valid; expand it offline with `scripts/build_cl4r1t4s_fingerprints.py` against a local CL4R1T4S checkout.
+
 ## Empirical AI-tool config paths (v0.2)
 
 GitExpose scans for these paths during URL/HTTP scans (where the path is exposed) and during local filesystem scans:
@@ -167,8 +200,9 @@ Key behaviours:
 
 Every finding includes:
 
-- **`attack_class`** — OWASP LLM Top 10 ID (`LLM05` Supply Chain, `LLM06` Sensitive Info Disclosure, `LLM08` Excessive Agency, etc.)
-- **`atlas_technique`** — MITRE ATLAS technique ID (e.g., `AML.T0019`, `AML.TA0015`)
+- **`attack_class`** — OWASP LLM Top 10 ID (`LLM05` Supply Chain, `LLM06` Sensitive Info Disclosure, `LLM07` System Prompt Leakage, `LLM08` Excessive Agency, etc.)
+- **`atlas_technique`** — MITRE ATLAS technique ID (e.g., `AML.T0019`, `AML.TA0015`, `AML.T0053`, `AML.T0056`)
+- **`mitre_attack`** (v0.6, agent-exposure findings) — MITRE ATT&CK technique ID (e.g., `T1059`, `T1552`, `T1071.001`, `T1041`)
 
 These appear in JSON, SARIF (as taxonomy references), HTML (badges), CSV (columns), and console output.
 

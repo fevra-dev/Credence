@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.6.0 — 2026-05-30 — AI Agent Exposure
+
+### Added
+- **`gitexpose agent-audit <path>`** — audits AI-agent configs for excessive tool permissions and leaked system prompts (console/json).
+- **Excessive-agency analysis** (`excessive_agent_capability`, OWASP LLM08) over MCP server configs (`mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json`, `claude_desktop_config.json`) and Claude-Code permission lists (`.claude/settings.json`). 8-class dangerous-capability taxonomy (shell/exec, code-eval, secret-access, network, fs-write, database, browser, unrestricted-wildcard) with exfil-chain escalation (exec + network/secret → CRITICAL). Deny-list-aware (a deny neutralizes a matching allow).
+- **System-prompt exposure detection** (`exposed_system_prompt`, OWASP LLM07) via CL4R1T4S known-leak shingle fingerprints (blake2b hashes only; no prompt text vendored; tolerant of light edits).
+- **Verified MITRE triple** on every agent finding: OWASP LLM Top 10 + ATLAS (`AML.T0053` AI Agent Tool Invocation / `AML.T0056` LLM Meta Prompt Extraction, verified against the live matrix) + ATT&CK (`T1059`/`T1552`/`T1071.001`/… per capability class, `T1041` on exfil chains). New `mitre_attack` finding field.
+
+### Notes
+- No new runtime dependencies (stdlib `json`/`hashlib`). Format-agnostic capability engine + pluggable adapters — v0.7 can add function-calling schemas / CrewAI / AutoGen / LangChain as drop-in adapters.
+- The fingerprint seed (`gitexpose/agent_exposure/data/cl4r1t4s_fingerprints.json`) ships empty-but-valid; regenerate/expand it offline with `scripts/build_cl4r1t4s_fingerprints.py` against a local CL4R1T4S checkout.
+
 ## v0.5.1 — 2026-05-28 — Supply-Chain Intelligence (hardening)
 
 ### Fixed

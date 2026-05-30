@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 
@@ -29,7 +29,8 @@ GitExpose finds exposed credentials, sensitive AI-infrastructure configs, and su
 | **Supply-chain risk** | Unpinned AI middleware, known-malicious package versions (TeamPCP), slopsquatting, `.pth` persistence, AI agent C2 beacons, k8s exfiltration, polyglot files, prompt injection in agent instruction files, malicious agent config payloads |
 | **Live dependency SCA** (v0.5) | Lock-file parsing (Python `requirements`/`poetry.lock`/`Pipfile.lock`, JS `package-lock.json`/`yarn.lock`) + OSV.dev live CVE/GHSA lookups → `vulnerable_dependency` findings, ranked by **exploitability context** (direct/unpinned/fix-available/credential-co-presence), not raw CVSS. Default on; `--offline` for air-gapped use. |
 | **AI-BOM** (v0.5) | CycloneDX 1.6 security BOM (`-o cyclonedx`) with components, dependency-vulnerability VEX (honestly scoped — `exploitable` only when proven), and NTIA minimum elements. |
-| **Compliance metadata** | OWASP LLM Top 10 + MITRE ATLAS technique on every finding |
+| **AI agent exposure** (v0.6) | `agent-audit` flags over-permissioned AI agents — MCP servers wired to shell/exec, `.claude` permission grants like `Bash(*)`/`WebFetch`, and exfil-capable capability chains (OWASP LLM08 / ATLAS AML.T0053 / ATT&CK T1059…) — and detects committed system prompts matching CL4R1T4S known-leak fingerprints (OWASP LLM07 / AML.T0056). |
+| **Compliance metadata** | OWASP LLM Top 10 + MITRE ATLAS + MITRE ATT&CK technique on every finding |
 | **HTTP target scanning** | `.git`, `.env`, source maps, framework misconfigs, exposed configs |
 
 See [docs/COVERAGE.md](docs/COVERAGE.md) for the full matrix.
@@ -184,6 +185,11 @@ gitexpose supply-chain ./my-project --verify --verify-only-severity HIGH --verif
 
 # Scan all git history for committed-then-removed secrets, and verify which are still live
 gitexpose git-history . --verify
+
+# Audit AI-agent configs for excessive tool permissions + leaked system prompts (v0.6)
+# Classifies MCP/permission grants against a dangerous-capability taxonomy (OWASP LLM08).
+gitexpose agent-audit ./repo
+gitexpose agent-audit ./repo -o json --out-file agent-findings.json
 ```
 
 ### Output Formats

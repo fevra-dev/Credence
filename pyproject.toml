@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gitexpose"
-version = "0.5.1"
+version = "0.6.0"
 description = "Exposure intelligence for AI and dev infrastructure — credential, AI-tool config, and supply-chain detection"
 readme = "README.md"
 license = {text = "MIT"}
@@ -95,6 +95,7 @@ include = ["gitexpose*"]
 
 [tool.setuptools.package-data]
 gitexpose = ["data/*.json"]
+"gitexpose.agent_exposure" = ["data/*.json"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
