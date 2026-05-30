@@ -1015,6 +1015,55 @@ def supply_chain(path: str, output: str, out_file: str, offline: bool,
     sys.exit(1 if findings else 0)
 
 
+@cli.command("agent-audit")
+@click.argument("path", type=click.Path(exists=True, file_okay=False, dir_okay=True))
+@click.option("-o", "--output", type=click.Choice(["console", "json"]), default="console")
+@click.option("--out-file", type=click.Path(), help="Write output to file instead of stdout")
+@click.option("--max-bytes", type=int, default=1024 * 1024, metavar="N",
+              help="Per-file size cap (default 1 MB).")
+def agent_audit(path: str, output: str, out_file: str, max_bytes: int):
+    """Audit AI-agent configs for excessive tool permissions + leaked system prompts."""
+    from .agent_exposure import scan as agent_scan
+
+    findings = agent_scan(Path(path))
+
+    if output == "json":
+        import json as _json
+        text = _json.dumps(findings, indent=2, default=str)
+    else:
+        if not findings:
+            text = f"✅ No agent-exposure findings in {path}"
+        else:
+            lines = [f"🤖 {len(findings)} agent-exposure finding(s) in {path}:"]
+            for f in findings:
+                sev = f.get("severity") or "UNKNOWN"
+                ftype = f.get("type") or "unknown"
+                src = f.get("source") or ""
+                lines.append(f"  [{sev}] {ftype}  ({src})")
+                desc = f.get("description")
+                if desc:
+                    lines.append(f"     {desc}")
+                if f.get("evidence"):
+                    lines.append(f"     ↳ {f['evidence']}")
+                parts = []
+                if f.get("attack_class"):
+                    parts.append(f["attack_class"])
+                if f.get("atlas_technique"):
+                    parts.append(f"ATLAS {f['atlas_technique']}")
+                if f.get("mitre_attack"):
+                    parts.append(f"ATT&CK {f['mitre_attack']}")
+                if parts:
+                    lines.append(f"     📋 {' · '.join(parts)}")
+            text = "\n".join(lines)
+
+    if out_file:
+        Path(out_file).write_text(text)
+    else:
+        click.echo(text)
+
+    sys.exit(1 if findings else 0)
+
+
 @cli.command("git-history")
 @click.argument("path", type=click.Path(exists=True, file_okay=False, dir_okay=True))
 @click.option("-o", "--output", type=click.Choice(["console", "json"]), default="console")
