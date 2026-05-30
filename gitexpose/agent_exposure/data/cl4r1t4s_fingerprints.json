@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "note": "Shingle fingerprints (blake2b-8) of known-leaked AI system prompts. Hashes only — no prompt text. Regenerate/expand with scripts/build_cl4r1t4s_fingerprints.py against a local CL4R1T4S checkout.",
+  "fingerprints": []
+}
