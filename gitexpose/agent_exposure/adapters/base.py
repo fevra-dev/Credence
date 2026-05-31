@@ -29,3 +29,20 @@ def adapter_for(filename: str) -> Optional[Adapter]:
     # match by basename (handles e.g. ".cursor/mcp.json" -> "mcp.json")
     tail = filename.rsplit("/", 1)[-1]
     return ADAPTERS.get(tail)
+
+
+# --- Content adapters (shape dispatch) -------------------------------------
+# Unlike ADAPTERS (filename dispatch), a content adapter is offered the parsed
+# text of every .json/.yaml/.yml file and decides for itself whether the content
+# matches its shape (returns [] on non-match). Adding a v0.8 framework adapter =
+# one new module that calls _register_content().
+
+CONTENT_ADAPTERS: List[Adapter] = []
+
+
+def _register_content(adapter: Adapter) -> None:
+    CONTENT_ADAPTERS.append(adapter)
+
+
+def content_adapters() -> List[Adapter]:
+    return list(CONTENT_ADAPTERS)
