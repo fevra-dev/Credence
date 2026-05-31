@@ -3,8 +3,10 @@
 ## v0.6.1 — 2026-05-31 — CLI entry-point unification
 
 ### Fixed
-- The installed `gitexpose` binary now exposes the advanced subcommands — `scan`, `supply-chain`, `git-history`, `agent-audit`, `react2shell`, `ml-scan`, `llm-scan`, `unicode-scan`, `mcp`, `list-tools`, `full-audit`. Previously the console script only ran the web scanner, so the documented `gitexpose supply-chain`/`git-history`/`agent-audit` commands (and the sample GitHub Action + pre-commit hook) didn't work from an install — they required `python -m gitexpose.cli_advanced`.
+- The installed `gitexpose` binary now exposes the advanced subcommands — `scan`, `supply-chain`, `git-history`, `agent-audit`, `react2shell`, `ml-scan`, `llm-scan`, `unicode-scan`, `mcp`, `list-tools`, `full-audit`. Previously the console script only ran the web scanner, so the documented `gitexpose supply-chain`/`git-history`/`agent-audit` commands didn't work from an install — they required `python -m gitexpose.cli_advanced`.
 - The group's `--version` reported a stale `0.4.0`; it now reflects the package version.
+- **Sample GitHub Action** (`gitexpose-scan.yml`): it never ran — it installed core-only (`supply-chain` needs the `advanced` extra), used `--output sarif` (supply-chain emits console/json/cyclonedx/aibom, not SARIF) and a non-existent `--output-file` flag. Now installs `.[advanced]`, runs `supply-chain . --offline -o json --out-file …`, and uploads the JSON as a build artifact.
+- **Pre-commit hook** (`.pre-commit-hooks.yaml`): removed the broken `gitexpose-staged` hook (it passed individual files to `supply-chain`, whose `PATH` is directory-only) and kept a single working `gitexpose-supply-chain` hook that scans the repo root, with the `advanced` extra wired via `additional_dependencies`.
 
 ### Changed
 - Bare-target `gitexpose <host>` and `gitexpose -f targets.txt` still run the web scanner (now the default `scan` command) — **non-breaking**.

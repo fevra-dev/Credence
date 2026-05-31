@@ -1,7 +1,10 @@
-# Sample workflow showing how to run GitExpose against a repo's working tree on
-# every PR and on push to main. Findings are uploaded to GitHub Code Scanning
-# via the SARIF reporter. See docs/INTEGRATIONS_CODE_SCANNING.md for the
-# Code-Scanning-specific setup.
+# Sample workflow: run GitExpose's local supply-chain scan against a repo's working
+# tree on every PR and on push to main, uploading findings as a build artifact.
+#
+# NOTE: `supply-chain` emits console/json/cyclonedx/aibom — NOT SARIF. For SARIF →
+# GitHub Code Scanning, use the web `scan` command against URL targets (it has a
+# SARIF reporter), or wait for supply-chain SARIF support. This sample uploads the
+# JSON findings as an artifact instead.
 
 name: GitExpose Supply Chain Scan
 on:
@@ -13,7 +16,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write  # required for SARIF upload
 
 jobs:
   scan:
@@ -29,18 +31,22 @@ jobs:
       - name: Install GitExpose
         run: |
           python -m pip install --upgrade pip
-          pip install gitexpose
+          # `supply-chain` needs the `advanced` extra (local-filesystem scanner deps).
+          # This repo's self-scan installs from the checkout; downstream users:
+          #   pip install "gitexpose[advanced]"
+          pip install ".[advanced]"
 
       - name: Run supply-chain scan
         run: |
           gitexpose supply-chain . \
-            --output sarif \
-            --output-file gitexpose-results.sarif
-        continue-on-error: true  # let the upload step run even if findings exist
+            --offline \
+            --output json \
+            --out-file gitexpose-results.json
+        continue-on-error: true  # findings (exit 1) shouldn't fail the sample job
 
-      - name: Upload SARIF
+      - name: Upload findings
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: actions/upload-artifact@v6
         with:
-          sarif_file: gitexpose-results.sarif
-          category: gitexpose
+          name: gitexpose-results
+          path: gitexpose-results.json
