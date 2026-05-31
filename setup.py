@@ -19,6 +19,7 @@ setup(
         "click>=8.1.0",
         "colorama>=0.4.6",
         "httpx>=0.27.0",
+        "PyYAML>=6.0",
     ],
     extras_require={
         "advanced": [

@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.7.0 — 2026-05-31 — Agent Exposure, Deepened
+
+### Added
+- **Function-calling tool-schema detection** — `agent-audit` now flags over-permissioned function-calling tools (OpenAI/Anthropic `tools[]` arrays in JSON/YAML), shape-sniffed wherever they live and classified by tool **name** against the v0.6 capability taxonomy (`excessive_agent_capability`, OWASP LLM08). Low-FP: only the exact tool-schema shape matches, and free-form tool descriptions are never inspected.
+- **SARIF 2.1.0 output for `agent-audit`** (`-o sarif`) — agent findings now upload to GitHub Code Scanning, carrying the OWASP/ATLAS/ATT&CK compliance triple as rule/result properties + taxonomy references.
+- New content-adapter (shape dispatch) mode in the agent-exposure engine — v0.8 framework adapters (CrewAI/AutoGen/LangChain) drop in here.
+
+### Changed
+- `PyYAML>=6.0` is now a core dependency (enables YAML tool-schema sniffing; also fixes a previously-undeclared `import yaml` in `gitexpose/advanced/api_discovery.py`). The agent-exposure package imports it defensively, so `agent-audit` still runs (JSON-only) if PyYAML is somehow absent.
+
 ## v0.6.1 — 2026-05-31 — CLI entry-point unification
 
 ### Fixed

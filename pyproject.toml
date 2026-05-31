@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gitexpose"
-version = "0.6.1"
+version = "0.7.0"
 description = "Exposure intelligence for AI and dev infrastructure — credential, AI-tool config, and supply-chain detection"
 readme = "README.md"
 license = {text = "MIT"}
@@ -47,6 +47,7 @@ dependencies = [
     "httpx>=0.27.0",
     "cyclonedx-python-lib>=8.0.0",
     "packageurl-python>=0.15.0",
+    "PyYAML>=6.0",
     "tomli>=2.0.0; python_version < '3.11'",
 ]
 

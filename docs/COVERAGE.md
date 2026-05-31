@@ -1,6 +1,6 @@
 # GitExpose Detection Coverage
 
-Last updated: v0.6
+Last updated: v0.7
 
 GitExpose detects credential exposure across **23 providers** in 5 categories, plus supply-chain risk indicators specific to AI infrastructure, and AI-agent exposure (excessive tool permissions + leaked system prompts). Each finding carries OWASP LLM Top 10 (`attack_class`) and MITRE ATLAS technique (`atlas_technique`) metadata; agent-exposure findings additionally carry a MITRE ATT&CK technique (`mitre_attack`).
 
@@ -131,16 +131,19 @@ When `supply-chain --verify` (or `git-history --verify`) detects both an `aws_ac
 
 Findings are ranked by **exploitability context** (credential-co-presence → known-exploited → direct → unpinned → fix-available → severity → CVSS), not raw CVSS. The CycloneDX 1.6 AI-BOM (`-o cyclonedx`) carries these as VEX entries; `analysis.state` is `exploitable` only when a co-present credential is `--verify`-confirmed live or OSV flags it known-exploited, else `in_triage`.
 
-## AI agent exposure (v0.6)
+## AI agent exposure (v0.6–v0.7)
 
-`gitexpose agent-audit <path>` judges *what an AI agent is allowed to do* and detects committed/leaked system prompts. Pure static analysis — no network calls, no new runtime dependencies.
+`gitexpose agent-audit <path>` judges *what an AI agent is allowed to do* and detects committed/leaked system prompts. Pure static analysis — no network calls.
 
-**Config formats parsed** (via pluggable adapters):
+**Grant sources parsed** (via pluggable adapters — filename dispatch + v0.7 shape dispatch):
 
 | Format family | Files | What's extracted |
 |---|---|---|
 | MCP server configs | `mcp.json`, `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json`, `claude_desktop_config.json` | per-server launch `command` + `args` (folded into evidence), `env` passthrough keys |
 | Claude-Code permission lists | `.claude/settings.json`, `.claude/settings.local.json` | `permissions.allow` entries (a matching `deny` neutralizes one) |
+| Function-calling tool schemas (v0.7) | any `.json`/`.yaml`/`.yml` matching the OpenAI/Anthropic `tools[]` shape | each tool's **name** (classified by name; free-form descriptions never inspected — low-FP) |
+
+**Output formats:** `console`, `json`, and **`sarif`** (v0.7 — SARIF 2.1.0 for GitHub Code Scanning, carrying the OWASP/ATLAS/ATT&CK triple).
 
 **Dangerous-capability taxonomy** — each grant is classified into zero or more classes; a benign grant (read-only docs server, no wildcard) produces no finding:
 
