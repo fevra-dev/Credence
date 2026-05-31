@@ -49,6 +49,35 @@ def test_unrelated_settings_json_not_parsed(tmp_path):
     assert analyze_configs(tmp_path) == []
 
 
+def test_function_calling_schema_produces_finding(tmp_path):
+    _write(tmp_path, "agent_tools.json",
+           '{"tools": [{"type": "function", "function": {"name": "run_shell"}}]}')
+    findings = analyze_configs(tmp_path)
+    f = [x for x in findings if x["type"] == "excessive_agent_capability"]
+    assert f and f[0]["capability_class"] == "shell_exec"
+    assert f[0]["source"] == "agent_tools.json"
+
+
+def test_function_calling_exfil_chain(tmp_path):
+    # a tools schema with both an exec tool and a fetch tool -> exfil-chain CRITICAL
+    _write(tmp_path, "tools.yaml",
+           "tools:\n"
+           "  - type: function\n"
+           "    function: {name: run_shell}\n"
+           "  - type: function\n"
+           "    function: {name: http_get}\n")
+    findings = analyze_configs(tmp_path)
+    chained = [x for x in findings if x.get("exfil_chain")]
+    assert chained and chained[0]["severity"] == "CRITICAL"
+    assert set(chained[0]["exfil_chain"]) >= {"shell_exec", "network_fetch"}
+
+
+def test_benign_tools_schema_no_finding(tmp_path):
+    _write(tmp_path, "agent.json",
+           '{"tools": [{"type": "function", "function": {"name": "get_weather"}}]}')
+    assert analyze_configs(tmp_path) == []
+
+
 def test_scan_merges_capability_and_prompt_findings(tmp_path, monkeypatch):
     # grab the module object unambiguously — `from ... import scan` would resolve to
     # the re-exported scan() *function*, not the module we need to monkeypatch.

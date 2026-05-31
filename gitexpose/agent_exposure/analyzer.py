@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from . import adapters  # noqa: F401 — registers adapters
-from .adapters.base import adapter_for
+from .adapters.base import adapter_for, content_adapters
 from .capabilities import (
     ATTACK_TECHNIQUE, BASE_SEVERITY, classify, top_class,
 )
@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 _SKIP_DIRS = frozenset({".git", "node_modules", "__pycache__", ".venv", "venv"})
 _MAX_BYTES = 1 * 1024 * 1024
+_CONTENT_EXTS = frozenset({".json", ".yaml", ".yml"})
 _ATLAS = "AML.T0053"
 _OWASP = "OWASP LLM08 Excessive Agency"
 
@@ -53,37 +54,46 @@ def _finding(grant: Grant, classes) -> Dict:
     }
 
 
-def _iter_config_files(root: Path):
-    for path in root.rglob("*"):
-        if any(part in _SKIP_DIRS for part in path.parts):
-            continue
-        if not path.is_file():
-            continue
-        rel = str(path.relative_to(root))
-        # permission lists only count under a .claude/ directory
-        tail = path.name
-        if tail in ("settings.json", "settings.local.json") and ".claude" not in path.parts:
-            continue
-        if adapter_for(rel) is None:
-            continue
-        yield path, rel
-
-
 def analyze_configs(root: Path) -> List[Dict]:
     root = Path(root)
     findings: List[Dict] = []
     # source_file -> set of capability classes seen (for exfil-chain escalation)
     classes_by_source: Dict[str, set] = {}
 
-    for path, rel in _iter_config_files(root):
+    for path in root.rglob("*"):
+        if any(part in _SKIP_DIRS for part in path.parts):
+            continue
+        if not path.is_file():
+            continue
+        rel = str(path.relative_to(root))
+        tail = path.name
+
+        fn_adapter = adapter_for(rel)
+        # permission lists only count under a .claude/ directory (filename dispatch only)
+        suppress_fn = (
+            fn_adapter is not None
+            and tail in ("settings.json", "settings.local.json")
+            and ".claude" not in path.parts
+        )
+        is_content = path.suffix.lower() in _CONTENT_EXTS
+
+        if (fn_adapter is None or suppress_fn) and not is_content:
+            continue  # nothing dispatches to this file
+
         try:
             if path.stat().st_size > _MAX_BYTES:
                 continue
             content = path.read_text(encoding="utf-8", errors="ignore")
-            grants = adapter_for(rel)(content, rel)
+            grants: List[Grant] = []
+            if fn_adapter is not None and not suppress_fn:
+                grants.extend(fn_adapter(content, rel))
+            if is_content:
+                for ca in content_adapters():
+                    grants.extend(ca(content, rel))
         except Exception as exc:  # noqa: BLE001 — one bad file never aborts the scan
             logger.warning("agent-audit: failed to parse %s (%s)", rel, type(exc).__name__)
             continue
+
         for grant in grants:
             classes = classify(grant)
             if not classes:
