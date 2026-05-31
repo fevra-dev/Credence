@@ -23,6 +23,8 @@ from typing import Optional
 
 import click
 
+from . import __version__
+
 # Rich console for beautiful output (optional but recommended)
 try:
     from rich import print as rprint
@@ -102,7 +104,7 @@ def print_finding(severity: str, message: str, url: str = None):
 
 
 @click.group()
-@click.version_option(version="0.4.0", prog_name="GitExpose")
+@click.version_option(version=__version__, prog_name="GitExpose")
 def cli():
     """
     GitExpose Advanced - Next-Gen Security Scanner
@@ -113,7 +115,7 @@ def cli():
     pass
 
 
-@cli.command()
+@cli.command("full-audit")
 @click.argument('target')
 @click.option('-c', '--concurrency', default=50, help='Max concurrent requests')
 @click.option('-t', '--timeout', default=10, help='Request timeout in seconds')
@@ -130,9 +132,9 @@ def cli():
 @click.option('--full-audit', is_flag=True, help='Enable all scan types')
 @click.option('-v', '--verbose', is_flag=True, help='Verbose output')
 @click.option('-q', '--quiet', is_flag=True, help='Minimal output')
-def scan(target, concurrency, timeout, output, out_file, git_dump, react2shell,
-         ml_models, llm_exposure, unicode_detect, source_maps, cicd, api_discovery,
-         full_audit, verbose, quiet):
+def full_audit(target, concurrency, timeout, output, out_file, git_dump, react2shell,
+               ml_models, llm_exposure, unicode_detect, source_maps, cicd, api_discovery,
+               full_audit, verbose, quiet):
     """
     Comprehensive security scan of a target.
     
