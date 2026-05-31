@@ -1145,6 +1145,12 @@ def git_history(path, output, out_file, since, max_commits,
     sys.exit(1 if findings else 0)
 
 
+# Register the mature web scanner (gitexpose/cli.py) as the canonical `scan` subcommand.
+# Imported here (not in cli.py at module level) so the import stays one-way / cycle-free.
+from .cli import scan as _web_scan  # noqa: E402
+cli.add_command(_web_scan)
+
+
 def main():
     """Main entry point"""
     cli()

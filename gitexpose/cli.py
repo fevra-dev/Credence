@@ -38,7 +38,7 @@ def load_targets_from_file(filepath: str) -> List[str]:
     return targets
 
 
-@click.command()
+@click.command("scan")
 @click.argument("targets", nargs=-1)
 @click.option(
     "-f",
@@ -83,7 +83,7 @@ def load_targets_from_file(filepath: str) -> List[str]:
 )
 @click.option("--follow-redirects", is_flag=True, help="Follow HTTP redirects")
 @click.option("--version", is_flag=True, help="Show version and exit")
-def main(
+def scan(
     targets: tuple,
     file: Optional[str],
     output: str,
@@ -183,6 +183,25 @@ def main(
         sys.exit(1)  # Vulnerabilities found
     else:
         sys.exit(0)  # Clean
+
+
+_PASSTHROUGH = {"--help", "-h", "--version"}
+
+
+def _route_argv(argv, known):
+    """Prepend the default `scan` command unless argv already names a subcommand
+    or is a group-level --help/--version. Keeps bare-target `gitexpose <host>` and
+    leading-option `gitexpose -f targets.txt` routing to the web scanner."""
+    if argv and argv[0] not in known and argv[0] not in _PASSTHROUGH:
+        return ["scan", *argv]
+    return list(argv)
+
+
+def main():
+    """Console entry point: the unified `gitexpose` group with a default `scan` command."""
+    from .cli_advanced import cli as cli_group  # lazy import → no import cycle
+    known = set(cli_group.commands)
+    cli_group.main(args=_route_argv(sys.argv[1:], known), prog_name="gitexpose")
 
 
 if __name__ == "__main__":

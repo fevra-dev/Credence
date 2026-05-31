@@ -90,11 +90,11 @@ def test_supply_chain_json_has_no_internal_verify_input(tmp_path):
 
 
 def test_main_cli_accepts_sarif_output_format():
-    """`gitexpose --help` lists sarif as an output choice."""
+    """`gitexpose scan --help` lists sarif as an output choice."""
     from click.testing import CliRunner
 
-    from gitexpose.cli import main
+    from gitexpose.cli import scan
 
     runner = CliRunner()
-    result = runner.invoke(main, ["--help"])
+    result = runner.invoke(scan, ["--help"])
     assert "sarif" in result.output
