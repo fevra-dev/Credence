@@ -93,6 +93,9 @@ venv.bak/
 # by the generic *.json rule; negate the fixture dir so the smoke test passes clean.
 !tests/fixtures/agent_repo_v06/
 !tests/fixtures/agent_repo_v06/**
+# v0.7 function-calling tool-schema fixture (dropped by the generic *.json rule)
+!tests/fixtures/agent_repo_v07/
+!tests/fixtures/agent_repo_v07/**
 
 # Git dumps
 git-dumps/

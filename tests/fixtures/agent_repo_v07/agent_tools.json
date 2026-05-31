@@ -1,0 +1,1 @@
+{"tools": [{"type": "function", "function": {"name": "run_shell", "description": "run a command"}}, {"type": "function", "function": {"name": "http_get", "description": "fetch a url"}}, {"type": "function", "function": {"name": "get_weather", "description": "weather lookup"}}]}
