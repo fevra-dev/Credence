@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.6.1 — 2026-05-31 — CLI entry-point unification
+
+### Fixed
+- The installed `gitexpose` binary now exposes the advanced subcommands — `scan`, `supply-chain`, `git-history`, `agent-audit`, `react2shell`, `ml-scan`, `llm-scan`, `unicode-scan`, `mcp`, `list-tools`, `full-audit`. Previously the console script only ran the web scanner, so the documented `gitexpose supply-chain`/`git-history`/`agent-audit` commands (and the sample GitHub Action + pre-commit hook) didn't work from an install — they required `python -m gitexpose.cli_advanced`.
+- The group's `--version` reported a stale `0.4.0`; it now reflects the package version.
+
+### Changed
+- Bare-target `gitexpose <host>` and `gitexpose -f targets.txt` still run the web scanner (now the default `scan` command) — **non-breaking**.
+- The advanced multi-module aggregator (`--full-audit` sweep) moved from `scan` to **`gitexpose full-audit`**; the mature web scanner is the canonical `gitexpose scan`. (Its sub-modules `react2shell`/`ml-scan`/`llm-scan`/`unicode-scan` remain standalone subcommands.)
+
 ## v0.6.0 — 2026-05-30 — AI Agent Exposure
 
 ### Added

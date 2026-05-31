@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gitexpose"
-version = "0.6.0"
+version = "0.6.1"
 description = "Exposure intelligence for AI and dev infrastructure — credential, AI-tool config, and supply-chain detection"
 readme = "README.md"
 license = {text = "MIT"}

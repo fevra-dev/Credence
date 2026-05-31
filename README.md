@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.6.1-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 
@@ -190,6 +190,13 @@ gitexpose git-history . --verify
 # Classifies MCP/permission grants against a dangerous-capability taxonomy (OWASP LLM08).
 gitexpose agent-audit ./repo
 gitexpose agent-audit ./repo -o json --out-file agent-findings.json
+
+# Web scan: a bare target is shorthand for `gitexpose scan` (both run the web scanner)
+gitexpose example.com -o sarif
+gitexpose scan example.com -o sarif
+
+# Multi-module aggregate sweep (react2shell + ml + llm + unicode + source-maps + cicd + api)
+gitexpose full-audit example.com --full-audit
 ```
 
 ### Output Formats
