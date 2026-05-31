@@ -37,13 +37,18 @@ ATTACK_TECHNIQUE = {
 SEVERITY_ORDER = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "INFO": 0}
 
 _SHELL = {"bash", "sh", "zsh", "fish", "cmd", "cmd.exe", "powershell", "pwsh",
-          "shell", "terminal", "run_command", "execute_command", "run_shell_command"}
+          "shell", "terminal", "run_command", "execute_command", "run_shell_command",
+          "run_shell", "execute", "exec_code", "run_code", "code_interpreter", "python_exec"}
 _NETWORK = {"webfetch", "fetch", "curl", "wget", "http", "https",
-            "fetch_url", "browser_fetch", "web_request"}
+            "fetch_url", "browser_fetch", "web_request",
+            "http_get", "http_post", "web_search", "browse", "search_web", "url_fetch"}
 _FS_WRITE = {"write", "edit", "multiedit", "write_file", "create_file",
-             "delete_file", "fs_write", "filesystem"}
-_DB = {"postgres", "postgresql", "mysql", "sqlite", "mongodb", "redis", "database", "sql"}
+             "delete_file", "fs_write", "filesystem", "save_file", "put_file"}
+_DB = {"postgres", "postgresql", "mysql", "sqlite", "mongodb", "redis", "database", "sql",
+       "query_db", "run_query", "execute_sql"}
 _BROWSER = {"playwright", "puppeteer", "browser", "selenium", "chromium"}
+_SECRET_NAMES = {"read_secret", "get_secret", "read_env", "get_env",
+                 "fetch_secret", "secrets_manager", "vault_read"}
 
 _SECRET_RE = re.compile(r"(_KEY|_TOKEN|_SECRET|PASSWORD|CREDENTIAL|APIKEY|API_KEY)", re.I)
 _ENV_FILE_RE = re.compile(r"\.env\b", re.I)
@@ -73,7 +78,7 @@ def classify(grant: Grant) -> Set[CapabilityClass]:
         classes.add(CapabilityClass.DATABASE)
     if base in _BROWSER:
         classes.add(CapabilityClass.BROWSER_CONTROL)
-    if _SECRET_RE.search(raw) or (_ENV_FILE_RE.search(raw) and "read" in tool):
+    if base in _SECRET_NAMES or _SECRET_RE.search(raw) or (_ENV_FILE_RE.search(raw) and "read" in tool):
         classes.add(CapabilityClass.SECRET_ACCESS)
 
     return classes

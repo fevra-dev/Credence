@@ -53,3 +53,21 @@ def test_attack_technique_values():
     assert ATTACK_TECHNIQUE[CapabilityClass.SHELL_EXEC] == "T1059"
     assert ATTACK_TECHNIQUE[CapabilityClass.SECRET_ACCESS] == "T1552"
     assert ATTACK_TECHNIQUE[CapabilityClass.NETWORK_FETCH] == "T1071.001"
+
+
+def test_classify_function_tool_names():
+    # function-calling tool names map to the taxonomy by NAME
+    assert CapabilityClass.SHELL_EXEC in classify(_g("run_shell", 'tools[].name="run_shell"'))
+    assert CapabilityClass.CODE_EVAL not in classify(_g("run_shell", 'tools[].name="run_shell"'))
+    assert CapabilityClass.NETWORK_FETCH in classify(_g("http_get", 'tools[].name="http_get"'))
+    assert CapabilityClass.DATABASE in classify(_g("query_db", 'tools[].name="query_db"'))
+    assert CapabilityClass.SECRET_ACCESS in classify(_g("read_secret", 'tools[].name="read_secret"'))
+
+
+def test_classify_exec_code_tool_is_shell_exec():
+    assert CapabilityClass.SHELL_EXEC in classify(_g("exec_code", 'tools[].name="exec_code"'))
+
+
+def test_classify_benign_function_tool_empty():
+    assert classify(_g("get_weather", 'tools[].name="get_weather"')) == set()
+    assert classify(_g("calculator", 'tools[].name="calculator"')) == set()
