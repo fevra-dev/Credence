@@ -1019,7 +1019,7 @@ def supply_chain(path: str, output: str, out_file: str, offline: bool,
 
 @cli.command("agent-audit")
 @click.argument("path", type=click.Path(exists=True, file_okay=False, dir_okay=True))
-@click.option("-o", "--output", type=click.Choice(["console", "json"]), default="console")
+@click.option("-o", "--output", type=click.Choice(["console", "json", "sarif"]), default="console")
 @click.option("--out-file", type=click.Path(), help="Write output to file instead of stdout")
 @click.option("--max-bytes", type=int, default=1024 * 1024, metavar="N",
               help="Per-file size cap (default 1 MB).")
@@ -1032,6 +1032,9 @@ def agent_audit(path: str, output: str, out_file: str, max_bytes: int):
     if output == "json":
         import json as _json
         text = _json.dumps(findings, indent=2, default=str)
+    elif output == "sarif":
+        from .agent_exposure.sarif import to_sarif
+        text = to_sarif(findings, __version__)
     else:
         if not findings:
             text = f"✅ No agent-exposure findings in {path}"

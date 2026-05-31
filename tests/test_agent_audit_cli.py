@@ -43,3 +43,22 @@ def test_agent_audit_console_shows_mappings(tmp_path):
     result = CliRunner().invoke(cli, ["agent-audit", str(tmp_path), "-o", "console"])
     assert "excessive_agent_capability" in result.output
     assert "LLM08" in result.output and "AML.T0053" in result.output and "T1059" in result.output
+
+
+def test_agent_audit_sarif_output(tmp_path):
+    _repo(tmp_path)
+    result = CliRunner().invoke(cli, ["agent-audit", str(tmp_path), "-o", "sarif"])
+    doc = json.loads(result.output)
+    assert doc["version"] == "2.1.0"
+    assert doc["runs"][0]["tool"]["driver"]["name"] == "GitExpose"
+    assert any(r["ruleId"].startswith("excessive_agent_capability")
+               for r in doc["runs"][0]["results"])
+    assert result.exit_code == 1   # findings => exit 1
+
+
+def test_agent_audit_sarif_clean_dir(tmp_path):
+    (tmp_path / "README.md").write_text("# hello")
+    result = CliRunner().invoke(cli, ["agent-audit", str(tmp_path), "-o", "sarif"])
+    doc = json.loads(result.output)
+    assert doc["runs"][0]["results"] == []
+    assert result.exit_code == 0
