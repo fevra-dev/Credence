@@ -1,4 +1,6 @@
 """--fail-on severity gating: findings always print; exit code is thresholded."""
+from click.testing import CliRunner
+from gitexpose.cli_advanced import cli
 from gitexpose.cli_gating import exit_code_for, SEVERITY_ORDER
 
 
@@ -35,9 +37,6 @@ def test_critical_trips_every_gate():
     for floor in ("info", "low", "medium", "high", "critical"):
         assert exit_code_for([{"severity": "CRITICAL"}], floor) == 1
 
-
-from click.testing import CliRunner
-from gitexpose.cli_advanced import cli
 
 
 def test_agent_audit_default_high_gate_passes_on_low(tmp_path):

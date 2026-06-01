@@ -24,7 +24,7 @@ from typing import Optional
 import click
 
 from . import __version__
-from .cli_gating import add_fail_on_arg, exit_code_for
+from .cli_gating import SEVERITY_ORDER, add_fail_on_arg, exit_code_for
 
 # Rich console for beautiful output (optional but recommended)
 try:
@@ -924,11 +924,10 @@ def supply_chain(path: str, output: str, out_file: str, offline: bool,
         # findings are not credentials, so exclude them (they keep "skipped").
         to_verify = [f for f in findings if f.get("type") != "vulnerable_dependency"]
         if verify_only_severity:
-            _order = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "INFO": 0}
-            _floor = _order[verify_only_severity]
+            _floor = SEVERITY_ORDER[verify_only_severity]
             to_verify = [
                 f for f in to_verify
-                if _order.get((f.get("severity") or "INFO").upper(), 0) >= _floor
+                if SEVERITY_ORDER.get((f.get("severity") or "INFO").upper(), 0) >= _floor
             ]
         pair_aws_credentials(to_verify)
         _asyncio.run(verify_secrets(
@@ -1109,10 +1108,9 @@ def git_history(path, output, out_file, since, max_commits,
 
         to_verify = findings
         if verify_only_severity:
-            order = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "INFO": 0}
-            floor = order[verify_only_severity]
+            floor = SEVERITY_ORDER[verify_only_severity]
             to_verify = [f for f in findings
-                         if order.get((f.get("severity") or "INFO").upper(), 0) >= floor]
+                         if SEVERITY_ORDER.get((f.get("severity") or "INFO").upper(), 0) >= floor]
         pair_aws_credentials(to_verify)
         _asyncio.run(verify_secrets(to_verify, concurrency=verify_concurrency, timeout=verify_timeout))
 
