@@ -11,6 +11,11 @@ Finding types:
   - git_config_extraheader_credential Azure DevOps Basic header        (HIGH)
   - gitmodules_credential_url         token in [submodule] url=        (CRITICAL)
   - git_config_generic_token_url      user:pass@host, no known prefix  (LOW)
+
+Known limitations:
+  - http.extraHeader specified multiple times: configparser keeps only the last
+    value, so a non-final AUTHORIZATION header can be missed (rare in practice).
+  - [include] / include.path directives are not followed.
 """
 from __future__ import annotations
 
@@ -42,7 +47,7 @@ def _read(path: Path) -> Optional[configparser.ConfigParser]:
         text = path.read_text(encoding="utf-8", errors="ignore")
     except OSError:
         return None
-    parser = configparser.ConfigParser(strict=False, interpolation=None)
+    parser = configparser.ConfigParser(strict=False, interpolation=None, allow_no_value=True)
     try:
         parser.read_string(text)
     except configparser.Error:
@@ -83,6 +88,8 @@ def _finding(ftype: str, severity: str, source: str, description: str,
 def _scan_remote_like(parser, source: str, *, submodule: bool) -> List[Dict]:
     out: List[Dict] = []
     for section in parser.sections():
+        if section == configparser.DEFAULTSECT:
+            continue
         if not parser.has_option(section, "url"):
             continue
         url = parser.get(section, "url")
@@ -91,6 +98,7 @@ def _scan_remote_like(parser, source: str, *, submodule: bool) -> List[Dict]:
             continue
         masked = _mask(cls["_token"])
         if submodule:
+            # severity from _classify_url: CRITICAL for prefix tokens, LOW for generic
             out.append(_finding(
                 "gitmodules_credential_url", cls["severity"], source,
                 f"Submodule {section} embeds a credential-bearing URL ({masked}@...).",
@@ -114,6 +122,8 @@ def _scan_remote_like(parser, source: str, *, submodule: bool) -> List[Dict]:
 def _scan_extraheader(parser, source: str) -> List[Dict]:
     out: List[Dict] = []
     for section in parser.sections():
+        if section == configparser.DEFAULTSECT:
+            continue
         if not parser.has_option(section, "extraheader"):
             continue
         value = parser.get(section, "extraheader")

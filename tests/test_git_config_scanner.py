@@ -3,6 +3,7 @@ import base64
 from pathlib import Path
 
 from gitexpose.advanced.git_config_scanner import scan
+from gitexpose.advanced.local_fs_scanner import LocalFilesystemScanner
 
 
 def _write_git_config(root: Path, body: str) -> None:
@@ -90,9 +91,6 @@ def test_missing_git_dir_returns_empty(tmp_path):
     assert scan(tmp_path) == []
 
 
-from gitexpose.advanced.local_fs_scanner import LocalFilesystemScanner
-
-
 def test_local_fs_scanner_surfaces_git_metadata(tmp_path):
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text(
@@ -101,3 +99,24 @@ def test_local_fs_scanner_surfaces_git_metadata(tmp_path):
     )
     findings = LocalFilesystemScanner().scan(tmp_path)
     assert any(f["type"] == "git_config_credential_url" for f in findings)
+
+
+def test_bare_repo_config_is_not_skipped(tmp_path):
+    _write_git_config(tmp_path, (
+        "[core]\n\trepositoryformatversion = 0\n\tbare\n"
+        '[remote "origin"]\n'
+        '\turl = https://ghp_AbCdEf0123456789AbCdEf0123456789AbCd@github.com/o/r.git\n'
+    ))
+    out = scan(tmp_path)
+    assert any(f["type"] == "git_config_credential_url" for f in out)
+
+
+def test_default_section_url_does_not_duplicate(tmp_path):
+    _write_git_config(tmp_path, (
+        "[DEFAULT]\n"
+        '\turl = https://ghp_AbCdEf0123456789AbCdEf0123456789AbCd@github.com/x.git\n'
+        '[remote "origin"]\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n'
+    ))
+    out = scan(tmp_path)
+    # At most one credential finding — no per-section inheritance explosion.
+    assert len([f for f in out if "credential_url" in f["type"]]) <= 1
