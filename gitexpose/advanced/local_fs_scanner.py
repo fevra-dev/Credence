@@ -14,6 +14,7 @@ from typing import Dict, Iterable, List
 
 from ..secrets.secret_extractor import SecretExtractor
 from . import skill_security
+from .git_config_scanner import scan as scan_git_metadata
 from .dependency_pinning import DependencyPinningScanner
 from .known_bad_versions import scan_requirements as scan_known_bad
 from .slopsquatting import scan_requirements as scan_slopsquats
@@ -63,6 +64,8 @@ class LocalFilesystemScanner:
             if "\x00" in content[:1024]:
                 continue  # binary — skip text-based detectors
             findings.extend(self._scan_content(content, relative, path.name))
+        # v0.8 — structural git-metadata credential scan (once per root, never via git)
+        findings.extend(scan_git_metadata(root))
         # v0.2 — cluster post-processor adds blast-radius findings
         from .credential_cluster import process as cluster_process
         return cluster_process(findings)
