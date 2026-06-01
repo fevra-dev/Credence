@@ -24,6 +24,7 @@ from typing import Optional
 import click
 
 from . import __version__
+from .cli_gating import add_fail_on_arg, exit_code_for
 
 # Rich console for beautiful output (optional but recommended)
 try:
@@ -853,10 +854,12 @@ def add_verify_args(func):
 @click.option("--osv-max", type=int, default=5000, metavar="N",
               help="Cap dependencies queried against OSV.dev (default 5000).")
 @add_verify_args
+@add_fail_on_arg
 def supply_chain(path: str, output: str, out_file: str, offline: bool,
                  osv_timeout: float, osv_max: int, verify: bool,
                  verify_concurrency: int, verify_timeout: float,
-                 verify_only_severity: str, no_verify_banner: bool):
+                 verify_only_severity: str, no_verify_banner: bool,
+                 fail_on: str):
     """Scan a local directory for supply-chain risks (TeamPCP-class) + live SCA."""
     from .advanced.local_fs_scanner import LocalFilesystemScanner
 
@@ -1014,7 +1017,7 @@ def supply_chain(path: str, output: str, out_file: str, offline: bool,
     else:
         click.echo(text)
 
-    sys.exit(1 if findings else 0)
+    sys.exit(exit_code_for(findings, fail_on))
 
 
 @cli.command("agent-audit")
@@ -1023,7 +1026,8 @@ def supply_chain(path: str, output: str, out_file: str, offline: bool,
 @click.option("--out-file", type=click.Path(), help="Write output to file instead of stdout")
 @click.option("--max-bytes", type=int, default=1024 * 1024, metavar="N",
               help="Per-file size cap (default 1 MB).")
-def agent_audit(path: str, output: str, out_file: str, max_bytes: int):
+@add_fail_on_arg
+def agent_audit(path: str, output: str, out_file: str, max_bytes: int, fail_on: str):
     """Audit AI-agent configs for excessive tool permissions + leaked system prompts."""
     from .agent_exposure import scan as agent_scan
 
@@ -1066,7 +1070,7 @@ def agent_audit(path: str, output: str, out_file: str, max_bytes: int):
     else:
         click.echo(text)
 
-    sys.exit(1 if findings else 0)
+    sys.exit(exit_code_for(findings, fail_on))
 
 
 @cli.command("git-history")
@@ -1077,8 +1081,10 @@ def agent_audit(path: str, output: str, out_file: str, max_bytes: int):
 @click.option("--max-commits", type=int, default=None, metavar="N",
               help="Cap the number of commits scanned.")
 @add_verify_args
+@add_fail_on_arg
 def git_history(path, output, out_file, since, max_commits,
-                verify, verify_concurrency, verify_timeout, verify_only_severity, no_verify_banner):
+                verify, verify_concurrency, verify_timeout, verify_only_severity, no_verify_banner,
+                fail_on: str):
     """Scan all git history for credentials committed and later removed."""
     from pathlib import Path as _Path
     from .git_history import scan_history
@@ -1145,7 +1151,7 @@ def git_history(path, output, out_file, since, max_commits,
     else:
         click.echo(text)
 
-    sys.exit(1 if findings else 0)
+    sys.exit(exit_code_for(findings, fail_on))
 
 
 # Register the mature web scanner (gitexpose/cli.py) as the canonical `scan` subcommand.
