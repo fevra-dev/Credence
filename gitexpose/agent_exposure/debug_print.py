@@ -5,6 +5,8 @@ reference a variable whose NAME looks like a credential (api_key, token,
 secret, bearer, password, client_secret, access_key, ...). String literals that
 merely mention those words do NOT fire — only NAME/ATTRIBUTE references and the
 embedded expressions of f-strings count. One bad file never aborts the scan.
+Only positional call arguments are inspected; keyword arguments are intentionally
+out of scope to keep the false-positive rate low.
 
 Backed by arXiv:2604.03070 (73.5% of agent-skill credential leaks are stdout
 broadcasts). Finding type: agent_skill_credential_print (HIGH, OWASP LLM06 /
@@ -30,7 +32,7 @@ _CRED_NAME_RE = re.compile(
 )
 
 _LOGGING_LEVELS = frozenset({"debug", "info", "warning", "warn", "error",
-                             "critical", "exception", "log"})
+                             "critical", "exception"})
 
 
 def _is_print_or_logging(call: ast.Call) -> bool:
@@ -79,6 +81,7 @@ def _scan_source(text: str, source: str) -> List[Dict]:
                     "stdout/logs — leaks the secret into the agent's context window "
                     "and log sinks on every invocation."
                 ),
+                "recommendation": "Remove the debug print/log, or redact the credential (e.g. mask all but the last 4 chars) before emitting it.",
                 "attack_class": "LLM06",
                 "atlas_technique": "AML.T0019",
             })

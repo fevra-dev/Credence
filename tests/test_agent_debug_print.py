@@ -1,6 +1,7 @@
 """Agent debug-print AST detector: flags print/logging of credential-named vars."""
 from pathlib import Path
 
+from gitexpose.agent_exposure import scan as agent_scan
 from gitexpose.agent_exposure.debug_print import scan
 
 
@@ -49,7 +50,10 @@ def test_non_python_files_ignored(tmp_path):
     assert scan(tmp_path) == []
 
 
-from gitexpose.agent_exposure import scan as agent_scan
+def test_math_log_of_credential_named_var_is_not_flagged(tmp_path):
+    # np.log / math.log must NOT be treated as a logging call.
+    _py(tmp_path, "calc.py", "import numpy as np\nsecret_weight = 0.5\nprint_disabled = np.log(secret_weight)\n")
+    assert scan(tmp_path) == []
 
 
 def test_agent_scan_includes_debug_print(tmp_path):
