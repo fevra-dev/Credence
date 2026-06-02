@@ -844,7 +844,8 @@ def add_verify_args(func):
 
 @cli.command("supply-chain")
 @click.argument("path", type=click.Path(exists=True, file_okay=False, dir_okay=True))
-@click.option("-o", "--output", type=click.Choice(["console", "json", "cyclonedx", "aibom"]),
+@click.option("-o", "--output",
+              type=click.Choice(["console", "json", "cyclonedx", "aibom", "sarif"]),
               default="console")
 @click.option("--out-file", type=click.Path(), help="Write output to file instead of stdout")
 @click.option("--offline", is_flag=True, default=False,
@@ -960,6 +961,9 @@ def supply_chain(path: str, output: str, out_file: str, offline: bool,
     if output in ("cyclonedx", "aibom"):
         from .reporters.cyclonedx_reporter import build_bom
         text = build_bom(_v05_deps, findings)
+    elif output == "sarif":
+        from .agent_exposure.sarif import to_sarif
+        text = to_sarif(findings, __version__)
     elif output == "json":
         import json as _json
         text = _json.dumps(findings, indent=2, default=str)
