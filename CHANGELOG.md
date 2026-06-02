@@ -1,5 +1,46 @@
 # Changelog
 
+## v0.8.0 — 2026-06-02 — AI-Infra Layer, Deepened
+
+GitExpose v0.8 deepens the on-disk AI-infrastructure surface and is designed to **run alongside**
+TruffleHog/Gitleaks rather than replace them — the SARIF `partialFingerprints` below are the
+mechanical proof (cross-tool dedup), and every new finding type is structural/high-precision.
+
+### Added
+- **Git-metadata credential scanner** (in `supply-chain`) — structural `.git/config` / `.gitmodules`
+  parsing via `configparser` only (**never invokes git** — CVE-2025-41390-safe). New finding types:
+  `git_config_credential_url` (CRITICAL), `git_config_extraheader_credential` (HIGH, Azure DevOps
+  Basic-auth PAT), `gitmodules_credential_url` (CRITICAL for provider-prefix tokens / LOW for a
+  generic `user:pass@host`, `committed_to_history`), `git_config_generic_token_url` (LOW, generic
+  `user:pass@host`). OWASP LLM06 / ATLAS AML.T0012.
+- **Agent debug-print AST detector** (in `agent-audit`) — `agent_skill_credential_print` (HIGH):
+  flags `print()` / `logging.<level>()` of credential-named **variables** (not string literals;
+  f-strings supported) in agent/skill/tool Python. Pure stdlib `ast`. OWASP LLM06 / ATLAS AML.T0019.
+- **MCP security posture score (0-100)** (in `agent-audit`) — decoupled design: discrete per-issue
+  findings carry honest gating severities (`mcp_static_credential` HIGH, `mcp_plaintext_http` HIGH,
+  `mcp_unknown_origin` LOW, `mcp_unpinned_version` LOW) while an INFO `mcp_server_posture` summary
+  carries the 0-100 score + deduction breakdown. Env-var passthrough (`${VAR}`) is correctly **not**
+  flagged as a static credential. OWASP LLM08 / ATLAS AML.T0053.
+- **Orphan cross-source signal** (in `supply-chain`, opt-in `--track` / `--registry`) — a hash-only
+  `SecretRegistry` (SHA256; raw secret values are never persisted) tags each secret finding with a
+  `source_frequency` band (`orphan_candidate` / `low` / `moderate` / `high` / `replicated`) and a
+  `secret_value_hash`. Known example keys (e.g. `AKIAIOSFODNN7EXAMPLE`) are downgraded to INFO.
+- **SARIF `partialFingerprints["secretValueHash/v1"]`** — emitted for every secret-bearing finding,
+  the field GitHub Code Scanning / DefectDojo use to deduplicate across tools (run alongside TruffleHog).
+- **`supply-chain --output sarif`** — supply-chain findings now export to SARIF 2.1.0 (carrying the
+  fingerprints above).
+
+### Changed
+- **(Behavior change)** New `--fail-on {info,low,medium,high,critical}` severity exit gate on
+  `supply-chain`, `agent-audit`, and `git-history`, **default `high`**. Previously **any** finding
+  caused a non-zero exit; now only HIGH/CRITICAL do by default (cosmetic LOW/INFO posture findings no
+  longer fail CI). Use `--fail-on info` to restore the prior "any finding fails" behavior. All
+  findings are still printed; only the exit code is gated.
+
+### Notes
+- Zero new runtime dependencies — all v0.8 features are stdlib-only (`configparser`, `ast`, `hashlib`,
+  `base64`, `json`, `urllib`).
+
 ## v0.7.0 — 2026-05-31 — Agent Exposure, Deepened
 
 ### Added

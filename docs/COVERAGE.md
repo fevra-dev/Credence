@@ -2,7 +2,7 @@
 
 Last updated: v0.7
 
-GitExpose detects credential exposure across **23 providers** in 5 categories, plus supply-chain risk indicators specific to AI infrastructure, and AI-agent exposure (excessive tool permissions + leaked system prompts). Each finding carries OWASP LLM Top 10 (`attack_class`) and MITRE ATLAS technique (`atlas_technique`) metadata; agent-exposure findings additionally carry a MITRE ATT&CK technique (`mitre_attack`).
+GitExpose detects credential exposure across **23 providers** in 5 categories, plus supply-chain risk indicators specific to AI infrastructure, AI-agent exposure (excessive tool permissions + leaked system prompts), and — as of v0.8 — git-metadata credentials, agent debug-print leaks, MCP security posture scoring, and a cross-source orphan signal (see [AI-infra layer, deepened (v0.8)](#ai-infra-layer-deepened-v08)). Each finding carries OWASP LLM Top 10 (`attack_class`) and MITRE ATLAS technique (`atlas_technique`) metadata; agent-exposure findings additionally carry a MITRE ATT&CK technique (`mitre_attack`).
 
 ## Credential providers
 
@@ -166,6 +166,37 @@ Findings are ranked by **exploitability context** (credential-co-presence → kn
 | `exposed_system_prompt` | HIGH | Committed text matches a CL4R1T4S known-leaked system prompt (shingle-fingerprint overlap; hashes only, no prompt text vendored). OWASP **LLM07** System Prompt Leakage; ATLAS **AML.T0056** LLM Meta Prompt Extraction; `mitre_attack: T1552.001`. |
 
 The fingerprint seed (`gitexpose/agent_exposure/data/cl4r1t4s_fingerprints.json`) ships empty-but-valid; expand it offline with `scripts/build_cl4r1t4s_fingerprints.py` against a local CL4R1T4S checkout.
+
+## AI-infra layer, deepened (v0.8)
+
+**Git-metadata credentials** (in `supply-chain`) — structural `.git/config` / `.gitmodules` parsing via `configparser` only; **never invokes git** (CVE-2025-41390-safe — a malicious `core.fsmonitor` is never executed).
+
+| Finding type | Severity | Description |
+|---|---|---|
+| `git_config_credential_url` | CRITICAL | Provider-prefix token (`ghp_`/`github_pat_`/`ghs_`/`glpat-`/`hf_`) embedded in a `[remote] url =`. Persists in git metadata across clone/package ops. OWASP **LLM06** / ATLAS **AML.T0012**. |
+| `git_config_extraheader_credential` | HIGH | Azure DevOps Basic-auth PAT in `[http] extraHeader = AUTHORIZATION: Basic <base64>` (base64-decoded then matched). OWASP **LLM06** / ATLAS **AML.T0012**. |
+| `gitmodules_credential_url` | CRITICAL / LOW | Credential-bearing submodule URL in committed `.gitmodules` (`committed_to_history`). CRITICAL for provider-prefix tokens (`ghp_`/`glpat-`/`hf_`…), LOW for a generic `user:pass@host` URL. OWASP **LLM06** / ATLAS **AML.T0012**. |
+| `git_config_generic_token_url` | LOW | Generic `user:password@host` remote URL with no recognized prefix — manual-verify. OWASP **LLM06** / ATLAS **AML.T0012**. |
+
+**Agent debug-print** (in `agent-audit`) — AST-based, stdlib `ast` only.
+
+| Finding type | Severity | Description |
+|---|---|---|
+| `agent_skill_credential_print` | HIGH | `print()`/`logging.<level>()` of a credential-named **variable** (not a string literal; f-strings supported) in agent/skill/tool Python — leaks the secret to stdout/logs/context. OWASP **LLM06** / ATLAS **AML.T0019**. |
+
+**MCP security posture** (in `agent-audit`) — decoupled: per-issue findings gate CI, the INFO summary carries the score.
+
+| Finding type | Severity | Description |
+|---|---|---|
+| `mcp_static_credential` | HIGH | Static credential embedded in an MCP server `env` block (env-var passthrough `${VAR}` is **not** flagged). OWASP **LLM08** / ATLAS **AML.T0053**. |
+| `mcp_plaintext_http` | HIGH | MCP server URL is plaintext `http://`. OWASP **LLM08** / ATLAS **AML.T0053**. |
+| `mcp_unknown_origin` | LOW | MCP server origin not in the known-good registry. OWASP **LLM08** / ATLAS **AML.T0053**. |
+| `mcp_unpinned_version` | LOW | MCP server has no pinned version (supply-chain drift). OWASP **LLM08** / ATLAS **AML.T0053**. |
+| `mcp_server_posture` | INFO | 0-100 posture score + deduction breakdown per server (informational; never gates). OWASP **LLM08** / ATLAS **AML.T0053**. |
+
+**Orphan cross-source signal** (in `supply-chain`, opt-in `--track` / `--registry`) — a hash-only `SecretRegistry` (SHA256; raw values never persisted) annotates each secret finding **that carries a raw value** with `source_frequency` (`orphan_candidate` / `low` / `moderate` / `high` / `replicated`) and a `secret_value_hash`. (Git-metadata findings carry only a masked token, so they are intentionally not fingerprinted — there is no raw value to hash, and a masked string would not dedup against another tool anyway.) The hash is emitted as SARIF `partialFingerprints["secretValueHash/v1"]` for cross-tool dedup (run alongside TruffleHog); known example keys (e.g. `AKIAIOSFODNN7EXAMPLE`) are downgraded to INFO. This is enrichment metadata on existing secret findings, not a new finding type.
+
+**Exit gating** — new `--fail-on {info,low,medium,high,critical}` (default `high`) on `supply-chain` / `agent-audit` / `git-history`. **Output** — `supply-chain` adds `-o sarif`.
 
 ## Empirical AI-tool config paths (v0.2)
 

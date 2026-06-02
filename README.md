@@ -2,13 +2,13 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 
-**Exposure intelligence for AI and dev infrastructure**
+**Exposure intelligence for the AI-infrastructure layer**
 
-*Detect leaked credentials, exposed AI-tool configs, and supply-chain risk in the 2026 threat landscape*
+*MCP configs, agent skills, git-metadata credentials, model/dataset pipelines, supply-chain risk — the artifacts general scanners treat as plain text. Built to run **alongside** TruffleHog/Gitleaks, not replace them.*
 
 [Features](#features) • [Installation](#installation) • [Quick Start](#quick-start) • [Coverage](docs/COVERAGE.md) • [Documentation](#documentation)
 
@@ -30,6 +30,7 @@ GitExpose finds exposed credentials, sensitive AI-infrastructure configs, and su
 | **Live dependency SCA** (v0.5) | Lock-file parsing (Python `requirements`/`poetry.lock`/`Pipfile.lock`, JS `package-lock.json`/`yarn.lock`) + OSV.dev live CVE/GHSA lookups → `vulnerable_dependency` findings, ranked by **exploitability context** (direct/unpinned/fix-available/credential-co-presence), not raw CVSS. Default on; `--offline` for air-gapped use. |
 | **AI-BOM** (v0.5) | CycloneDX 1.6 security BOM (`-o cyclonedx`) with components, dependency-vulnerability VEX (honestly scoped — `exploitable` only when proven), and NTIA minimum elements. |
 | **AI agent exposure** (v0.6–v0.7) | `agent-audit` flags over-permissioned AI agents — MCP servers wired to shell/exec, `.claude` permission grants like `Bash(*)`/`WebFetch`, **function-calling tool schemas** (OpenAI/Anthropic `tools[]`, v0.7), and exfil-capable capability chains (OWASP LLM08 / ATLAS AML.T0053 / ATT&CK T1059…) — and detects committed system prompts matching CL4R1T4S known-leak fingerprints (OWASP LLM07 / AML.T0056). Console/JSON/**SARIF** output (v0.7 SARIF → GitHub Code Scanning). |
+| **AI-infra layer, deepened** (v0.8) | **Git-metadata credentials** — tokens in `.git/config`/`.gitmodules` remote URLs + Azure DevOps `extraHeader` PATs (structural, CVE-2025-41390-safe, never invokes git). **Agent debug-print** leaks (`print(api_key)` in skills, AST-based). **MCP posture score** (0-100) with decoupled per-issue findings + INFO summary. **Orphan cross-source signal** (`--track`): hash-only registry tags secrets `orphan_candidate`…`replicated`, emits SARIF `partialFingerprints` for dedup alongside TruffleHog. New `--fail-on` severity gate + `supply-chain -o sarif`. |
 | **Compliance metadata** | OWASP LLM Top 10 + MITRE ATLAS + MITRE ATT&CK technique on every finding |
 | **HTTP target scanning** | `.git`, `.env`, source maps, framework misconfigs, exposed configs |
 
@@ -193,6 +194,13 @@ gitexpose agent-audit ./repo
 gitexpose agent-audit ./repo -o json --out-file agent-findings.json
 # Emit SARIF for GitHub Code Scanning (v0.7)
 gitexpose agent-audit ./repo -o sarif --out-file agent.sarif
+
+# v0.8: emit SARIF with cross-tool dedup fingerprints (partialFingerprints) and
+# the orphan cross-source signal — run alongside TruffleHog and dedup in Code Scanning.
+gitexpose supply-chain ./repo --output sarif --track --out-file supply.sarif
+
+# v0.8: only fail CI on HIGH/CRITICAL (the default); --fail-on info restores "any finding fails"
+gitexpose agent-audit ./repo --fail-on high
 
 # Web scan: a bare target is shorthand for `gitexpose scan` (both run the web scanner)
 gitexpose example.com -o sarif
