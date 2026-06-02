@@ -1,0 +1,76 @@
+"""MCP security score: per-issue findings + INFO posture summary; score != severity."""
+from gitexpose.agent_exposure.mcp_score import score_server
+
+
+def test_clean_known_https_oauth_server_scores_high():
+    server = {
+        "name": "stripe",
+        "url": "https://mcp.stripe.com",
+        "version": "1.2.3",
+        "auth": "oauth",
+        "env": {},
+    }
+    findings = score_server(server, "mcp.json")
+    summary = next(f for f in findings if f["type"] == "mcp_server_posture")
+    assert summary["severity"] == "INFO"
+    assert summary["score"] >= 90
+    assert all(f["severity"] != "HIGH" for f in findings if f["type"] != "mcp_server_posture")
+
+
+def test_static_credential_is_high_and_deducts_30():
+    server = {
+        "name": "custom",
+        "url": "https://mcp.example.com",
+        "version": "1.0.0",
+        "env": {"API_KEY": "sk_live_abc"},
+    }
+    findings = score_server(server, "mcp.json")
+    issue = next(f for f in findings if f["type"] == "mcp_static_credential")
+    assert issue["severity"] == "HIGH"
+    summary = next(f for f in findings if f["type"] == "mcp_server_posture")
+    assert summary["score"] <= 70
+
+
+def test_plaintext_http_is_high():
+    server = {"name": "x", "url": "http://mcp.example.com", "version": "1.0.0"}
+    findings = score_server(server, "mcp.json")
+    assert any(f["type"] == "mcp_plaintext_http" and f["severity"] == "HIGH" for f in findings)
+
+
+def test_unknown_origin_is_low():
+    server = {"name": "x", "url": "https://totally-unknown.example", "version": "1.0.0"}
+    findings = score_server(server, "mcp.json")
+    issue = next(f for f in findings if f["type"] == "mcp_unknown_origin")
+    assert issue["severity"] == "LOW"
+
+
+def test_unpinned_version_is_low():
+    server = {"name": "stripe", "url": "https://mcp.stripe.com"}  # no version
+    findings = score_server(server, "mcp.json")
+    assert any(f["type"] == "mcp_unpinned_version" and f["severity"] == "LOW" for f in findings)
+
+
+def test_posture_summary_lists_deductions_in_description():
+    server = {"name": "x", "url": "https://unknown.example"}  # unknown + no pin
+    findings = score_server(server, "mcp.json")
+    summary = next(f for f in findings if f["type"] == "mcp_server_posture")
+    assert "unknown origin" in summary["description"].lower()
+    assert str(summary["score"]) in summary["description"]
+    assert 0 <= summary["score"] <= 100
+
+
+import json
+from gitexpose.agent_exposure.analyzer import analyze_configs
+
+
+def test_analyze_configs_emits_mcp_posture(tmp_path):
+    (tmp_path / "mcp.json").write_text(json.dumps({
+        "mcpServers": {
+            "weird": {"url": "http://unknown.example", "env": {"API_KEY": "sk_live_x"}}
+        }
+    }))
+    findings = analyze_configs(tmp_path)
+    types = {f["type"] for f in findings}
+    assert "mcp_server_posture" in types
+    assert "mcp_static_credential" in types
+    assert "mcp_plaintext_http" in types

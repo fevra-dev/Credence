@@ -25,9 +25,16 @@ def test_shell_mcp_produces_critical_finding(tmp_path):
 
 
 def test_benign_mcp_no_finding(tmp_path):
+    # The docs server produces no grant-severity findings (npx is benign).
+    # v0.8 adds INFO mcp_server_posture and LOW mcp_unpinned_version findings, so we
+    # filter to excessive_agent_capability only — the original intent of this test.
     _write(tmp_path, "mcp.json",
            '{"mcpServers": {"docs": {"command": "npx", "args": ["@acme/docs-mcp"]}}}')
-    assert analyze_configs(tmp_path) == []
+    capability_findings = [
+        f for f in analyze_configs(tmp_path)
+        if f["type"] == "excessive_agent_capability"
+    ]
+    assert capability_findings == []
 
 
 def test_exfil_chain_escalation(tmp_path):

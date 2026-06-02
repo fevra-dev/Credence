@@ -15,6 +15,7 @@ from .capabilities import (
     ATTACK_TECHNIQUE, BASE_SEVERITY, classify, top_class,
 )
 from .models import CapabilityClass, Grant
+from . import mcp_score
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,23 @@ _DESC = {
     CapabilityClass.UNRESTRICTED: "is an unrestricted wildcard grant",
 }
 _REC = "Scope this grant to the minimum needed, or add an explicit deny; remove if unused."
+
+import json as _json
+
+_MCP_BASENAMES = ("mcp.json", ".mcp.json", "claude_desktop_config.json")
+
+
+def _maybe_score_mcp(content: str, rel: str, tail: str) -> List[Dict]:
+    if tail not in _MCP_BASENAMES:
+        return []
+    try:
+        data = _json.loads(content)
+    except (ValueError, TypeError):
+        return []
+    out: List[Dict] = []
+    for server in mcp_score.parse_servers(data, rel):
+        out.extend(mcp_score.score_server(server, rel))
+    return out
 
 
 def _finding(grant: Grant, classes) -> Dict:
@@ -100,6 +118,9 @@ def analyze_configs(root: Path) -> List[Dict]:
                 continue
             findings.append(_finding(grant, classes))
             classes_by_source.setdefault(rel, set()).update(classes)
+
+        # v0.8 — MCP posture scoring (per-server findings + INFO summary)
+        findings.extend(_maybe_score_mcp(content, rel, tail))
 
     findings.extend(_exfil_chain_findings(classes_by_source))
     return findings
