@@ -1,10 +1,12 @@
 """Cross-source orphan signal: hash-only registry, frequency bands, no raw values."""
 import json
+import json as _json
 from pathlib import Path
 
 from gitexpose.advanced.secret_registry import (
     SecretRegistry, frequency_band, KNOWN_EXAMPLE_KEYS, enrich,
 )
+from gitexpose.agent_exposure.sarif import to_sarif
 
 
 def test_frequency_bands():
@@ -62,8 +64,46 @@ def test_non_secret_findings_are_untouched():
     assert "secret_value_hash" not in findings[0]
 
 
-import json as _json
-from gitexpose.agent_exposure.sarif import to_sarif
+def test_valueless_url_finding_is_not_hashed():
+    # A non-credential *_url finding with no raw value must NOT be hashed/persisted
+    # (the registry's secret set is intentionally narrower than the cluster's).
+    findings = [{"type": "redirect_url", "severity": "LOW", "source": "app.py"}]
+    enrich(findings, registry=None)
+    assert "secret_value_hash" not in findings[0]
+
+
+def test_db_connection_url_with_value_is_still_a_secret():
+    # postgres_url etc. carry a raw value_full, so they still qualify via that branch.
+    findings = [{"type": "postgres_url", "value_full": "postgresql://u:p@h:5432/db",
+                 "severity": "HIGH", "source": "settings.py"}]
+    enrich(findings, registry=None)
+    assert len(findings[0]["secret_value_hash"]) == 64
+
+
+def test_enrich_multi_source_progression(tmp_path):
+    # Round-trip through enrich()->observe()->frequency_band as the SAME secret is
+    # seen in progressively more distinct sources. The band reflects the live
+    # cross-source count, not a stale value, and survives registry reload.
+    reg = SecretRegistry(tmp_path / "r.json")
+    secret = "ghp_progressionsecret123"
+
+    def observe_from(source: str) -> str:
+        f = [{"type": "github_token", "value_full": secret,
+              "severity": "HIGH", "source": source}]
+        enrich(f, registry=reg)
+        return f[0]["source_frequency"]
+
+    assert observe_from("repo-0") == "orphan_candidate"   # 1 distinct source
+    assert observe_from("repo-1") == "low"                # 2 distinct sources
+    for i in range(2, 6):
+        observe_from(f"repo-{i}")                          # up to 6 distinct
+    assert observe_from("repo-6") == "moderate"           # 7 distinct → moderate
+
+    # Reload from disk and confirm the persisted count continues (not reset).
+    reg2 = SecretRegistry(tmp_path / "r.json")
+    f = [{"type": "github_token", "value_full": secret, "severity": "HIGH", "source": "repo-7"}]
+    enrich(f, registry=reg2)
+    assert f[0]["source_frequency"] == "moderate"          # 8 distinct sources
 
 
 def test_sarif_emits_partial_fingerprint():

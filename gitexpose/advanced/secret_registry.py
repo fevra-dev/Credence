@@ -3,8 +3,13 @@
 A secret seen in exactly one source is statistically more likely a private
 accidental leak; a secret seen across many sources is likely a scraped public
 example. We tag each secret finding with a `source_frequency` band and a
-`secret_value_hash` (SHA256 of the normalised value). The registry persists
-HASHES ONLY — never raw secret values. Frequency is a triage hint, not a verdict.
+`secret_value_hash` (SHA256 of the normalised value).
+
+The registry persists secret-value HASHES (never the raw secret values) plus,
+per hash, the list of distinct source labels (relative file paths) it was seen
+in. Those source labels are needed to count distinct sources; be aware they are
+written to the registry file, so treat that file as repo-structure-revealing if
+you share it for cross-team dedup. Frequency is a triage hint, not a verdict.
 
 The hash also feeds SARIF `partialFingerprints["secretValueHash/v1"]`, enabling
 cross-tool deduplication (e.g. running alongside TruffleHog).
@@ -29,7 +34,13 @@ KNOWN_EXAMPLE_KEYS = frozenset({
 
 
 def normalize(value: str) -> str:
-    """Normalise a secret for hashing: strip + URL-decode, preserve case."""
+    """Normalise a secret for hashing: strip + URL-decode, preserve case.
+
+    URL-decoding makes GitExpose and TruffleHog (which URL-decodes extracted
+    values) land on the same hash for the same logical secret, so cross-tool
+    dedup via partialFingerprints works. This is intentionally lossy: two
+    different raw encodings of the same secret hash identically.
+    """
     return unquote((value or "").strip())
 
 
@@ -49,14 +60,20 @@ def frequency_band(count: int) -> str:
     return "replicated"
 
 
-# Token substrings that mark a finding-dict as a credential (mirrors cluster logic).
+# Token substrings that mark a finding-dict as a credential. Narrower than the
+# cluster module's set on purpose: the registry PERSISTS a hash for every match,
+# so we avoid the over-broad `_url` token (which matches non-credential findings
+# like redirect_url). DB connection-string findings (postgres_url, mongodb_url,
+# ...) still qualify via their raw `value_full`, handled by the first branch below.
 _SECRET_TYPE_TOKENS = (
     "_api_key", "_token", "_pat", "_webhook", "_key", "_sid", "_password",
-    "_url", "private_key", "jwt_token",
+    "private_key", "jwt_token",
 )
 
 
 def _is_secret_finding(f: Dict) -> bool:
+    # A raw secret value present (value_full/secret) is the strongest signal and
+    # covers DB connection URLs, context-bound keys, etc. without a token match.
     if f.get("value_full") or f.get("secret"):
         return True
     t = f.get("type", "") or ""

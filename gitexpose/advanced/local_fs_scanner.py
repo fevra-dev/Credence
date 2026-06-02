@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Optional, Union
 
 from ..secrets.secret_extractor import SecretExtractor
 from . import skill_security
@@ -47,7 +47,8 @@ class LocalFilesystemScanner:
         self._secret_extractor = SecretExtractor()
         self._dep_pinning = DependencyPinningScanner()
 
-    def scan(self, root: Path, track: bool = False, registry_path=None) -> List[Dict]:
+    def scan(self, root: Path, track: bool = False,
+             registry_path: Optional[Union[str, Path]] = None) -> List[Dict]:
         root = Path(root)
         findings: List[Dict] = []
         for path in self._iter_files(root):

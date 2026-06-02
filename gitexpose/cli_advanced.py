@@ -856,7 +856,8 @@ def add_verify_args(func):
 @click.option("--track", is_flag=True, default=False,
               help="Record secret hashes in a cross-source registry for orphan signal (opt-in).")
 @click.option("--registry", "registry_path", type=click.Path(), default=None,
-              help="Registry file path (default ~/.gitexpose/registry.json). Implies --track.")
+              help="Registry file path (implies --track; default ~/.gitexpose/registry.json "
+                   "when --track is used).")
 @add_verify_args
 @add_fail_on_arg
 def supply_chain(path: str, output: str, out_file: str, offline: bool,
