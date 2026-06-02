@@ -13,6 +13,7 @@ from typing import Dict, List
 from .analyzer import analyze_configs, _SKIP_DIRS, _MAX_BYTES
 from .capabilities import SEVERITY_ORDER
 from .system_prompt import load_fingerprints, match_text
+from . import debug_print
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,7 @@ def scan(path) -> List[Dict]:
     root = Path(path)
     findings: List[Dict] = []
     findings.extend(analyze_configs(root))
+    findings.extend(debug_print.scan(root))
     findings.extend(_scan_system_prompts(root, _load_default_fingerprints()))
     findings.sort(key=_sort_key, reverse=True)
     return findings
