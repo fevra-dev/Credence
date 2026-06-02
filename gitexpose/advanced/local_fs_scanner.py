@@ -47,7 +47,7 @@ class LocalFilesystemScanner:
         self._secret_extractor = SecretExtractor()
         self._dep_pinning = DependencyPinningScanner()
 
-    def scan(self, root: Path) -> List[Dict]:
+    def scan(self, root: Path, track: bool = False, registry_path=None) -> List[Dict]:
         root = Path(root)
         findings: List[Dict] = []
         for path in self._iter_files(root):
@@ -66,9 +66,15 @@ class LocalFilesystemScanner:
             findings.extend(self._scan_content(content, relative, path.name))
         # v0.8 — structural git-metadata credential scan (once per root, never via git)
         findings.extend(scan_git_metadata(root))
-        # v0.2 — cluster post-processor adds blast-radius findings
+        # v0.8 — opt-in cross-source registry for orphan signal
+        registry = None
+        if track:
+            from .secret_registry import SecretRegistry
+            default = Path.home() / ".gitexpose" / "registry.json"
+            registry = SecretRegistry(Path(registry_path) if registry_path else default)
+        # v0.2 — cluster post-processor adds blast-radius findings (+ v0.8 enrichment)
         from .credential_cluster import process as cluster_process
-        return cluster_process(findings)
+        return cluster_process(findings, registry=registry)
 
     def _iter_files(self, root: Path) -> Iterable[Path]:
         for path in root.rglob("*"):

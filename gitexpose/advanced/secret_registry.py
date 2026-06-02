@@ -1,0 +1,121 @@
+"""Cross-source secret frequency registry + orphan-signal enrichment.
+
+A secret seen in exactly one source is statistically more likely a private
+accidental leak; a secret seen across many sources is likely a scraped public
+example. We tag each secret finding with a `source_frequency` band and a
+`secret_value_hash` (SHA256 of the normalised value). The registry persists
+HASHES ONLY — never raw secret values. Frequency is a triage hint, not a verdict.
+
+The hash also feeds SARIF `partialFingerprints["secretValueHash/v1"]`, enabling
+cross-tool deduplication (e.g. running alongside TruffleHog).
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import logging
+from pathlib import Path
+from typing import Dict, List, Optional
+from urllib.parse import unquote
+
+logger = logging.getLogger(__name__)
+
+# Well-known placeholder/example credentials → downgrade to INFO.
+KNOWN_EXAMPLE_KEYS = frozenset({
+    "AKIAIOSFODNN7EXAMPLE",
+    "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+    "AIzaSyDUMMYKEYDUMMYKEYDUMMYKEYDUMMYKEY1",
+})
+
+
+def normalize(value: str) -> str:
+    """Normalise a secret for hashing: strip + URL-decode, preserve case."""
+    return unquote((value or "").strip())
+
+
+def secret_hash(value: str) -> str:
+    return hashlib.sha256(normalize(value).encode("utf-8")).hexdigest()
+
+
+def frequency_band(count: int) -> str:
+    if count <= 1:
+        return "orphan_candidate"
+    if count <= 5:
+        return "low"
+    if count <= 15:
+        return "moderate"
+    if count <= 50:
+        return "high"
+    return "replicated"
+
+
+# Token substrings that mark a finding-dict as a credential (mirrors cluster logic).
+_SECRET_TYPE_TOKENS = (
+    "_api_key", "_token", "_pat", "_webhook", "_key", "_sid", "_password",
+    "_url", "private_key", "jwt_token",
+)
+
+
+def _is_secret_finding(f: Dict) -> bool:
+    if f.get("value_full") or f.get("secret"):
+        return True
+    t = f.get("type", "") or ""
+    return any(tok in t for tok in _SECRET_TYPE_TOKENS)
+
+
+def _raw_value(f: Dict) -> Optional[str]:
+    return f.get("value_full") or f.get("secret")
+
+
+class SecretRegistry:
+    """Persistent SHA256 -> sorted list of distinct source labels. Hashes only."""
+
+    def __init__(self, path: Path):
+        self.path = Path(path)
+        self._data: Dict[str, List[str]] = {}
+        if self.path.is_file():
+            try:
+                self._data = json.loads(self.path.read_text())
+            except (OSError, ValueError):
+                self._data = {}
+
+    def observe(self, value: str, source: str) -> int:
+        """Record (hash, source); return the distinct-source count for this secret."""
+        h = secret_hash(value)
+        sources = self._data.setdefault(h, [])
+        if source not in sources:
+            sources.append(source)
+            sources.sort()
+        return len(sources)
+
+    def save(self) -> None:
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self.path.write_text(json.dumps(self._data, indent=0))
+        except OSError as exc:
+            logger.warning("secret_registry: could not save %s: %s", self.path, exc)
+
+
+def enrich(findings: List[Dict], registry: Optional[SecretRegistry]) -> None:
+    """Mutate secret findings in-place: add secret_value_hash + source_frequency.
+
+    With a registry, source_frequency reflects cross-source observation count.
+    Without one, only the hash is added (still feeds SARIF fingerprints).
+    Known example keys are downgraded to INFO regardless of registry.
+    """
+    for f in findings:
+        if not _is_secret_finding(f):
+            continue
+        raw = _raw_value(f)
+        if raw is None:
+            continue
+        f["secret_value_hash"] = secret_hash(raw)
+        if normalize(raw) in KNOWN_EXAMPLE_KEYS:
+            f["severity"] = "INFO"
+            f["source_frequency"] = "known_example"
+            continue
+        if registry is not None:
+            count = registry.observe(raw, f.get("source") or "unknown")
+            f["source_frequency"] = frequency_band(count)
+    if registry is not None:
+        registry.save()

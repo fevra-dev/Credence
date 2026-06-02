@@ -56,8 +56,14 @@ def _is_aggregator_path(source: str) -> bool:
     return any(p.search(source or "") for p in _MULTI_PROVIDER_AGGREGATORS)
 
 
-def process(findings: List[Dict]) -> List[Dict]:
-    """Return original findings plus any cluster/multi-provider findings."""
+def process(findings: List[Dict], registry=None) -> List[Dict]:
+    """Return original findings plus any cluster/multi-provider findings.
+
+    Before clustering, enrich secret findings with secret_value_hash and (when a
+    registry is supplied) source_frequency. Enrichment mutates findings in place.
+    """
+    from .secret_registry import enrich
+    enrich(findings, registry)
     by_source: Dict[str, List[Dict]] = defaultdict(list)
     for f in findings:
         if _is_secret(f):

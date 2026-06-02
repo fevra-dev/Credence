@@ -853,18 +853,23 @@ def add_verify_args(func):
               help="Per-request OSV.dev timeout (default 10s).")
 @click.option("--osv-max", type=int, default=5000, metavar="N",
               help="Cap dependencies queried against OSV.dev (default 5000).")
+@click.option("--track", is_flag=True, default=False,
+              help="Record secret hashes in a cross-source registry for orphan signal (opt-in).")
+@click.option("--registry", "registry_path", type=click.Path(), default=None,
+              help="Registry file path (default ~/.gitexpose/registry.json). Implies --track.")
 @add_verify_args
 @add_fail_on_arg
 def supply_chain(path: str, output: str, out_file: str, offline: bool,
-                 osv_timeout: float, osv_max: int, verify: bool,
-                 verify_concurrency: int, verify_timeout: float,
+                 osv_timeout: float, osv_max: int, track: bool, registry_path: str,
+                 verify: bool, verify_concurrency: int, verify_timeout: float,
                  verify_only_severity: str, no_verify_banner: bool,
                  fail_on: str):
     """Scan a local directory for supply-chain risks (TeamPCP-class) + live SCA."""
     from .advanced.local_fs_scanner import LocalFilesystemScanner
 
     scanner = LocalFilesystemScanner()
-    findings = scanner.scan(Path(path))
+    findings = scanner.scan(Path(path), track=track or bool(registry_path),
+                            registry_path=registry_path)
 
     # --- v0.5: lock-file SCA + OSV.dev live vulnerability intelligence ---
     import asyncio as _asyncio

@@ -50,20 +50,27 @@ def to_sarif(findings: List[Dict], tool_version: str) -> str:
         result_props = {k: f[k] for k in ("severity", "capability_class", "attack_class",
                                           "atlas_technique", "mitre_attack", "exfil_chain")
                         if f.get(k) is not None}
-        results.append({
+        result_obj = {
             "ruleId": rid,
             "level": level,
             "message": {"text": f.get("description") or f.get("type", "finding")},
             "locations": [{
                 "physicalLocation": {
                     "artifactLocation": {"uri": f.get("source") or "unknown"},
-                    "region": {"startLine": 1},
+                    "region": {"startLine": f.get("line", 1)},
                 }
             }],
             "taxa": [{"toolComponent": {"name": _TAXONOMY_NAME}, "id": tid}
                      for tid in compliance.values()],
             "properties": result_props,
-        })
+        }
+        if f.get("secret_value_hash"):
+            result_obj["partialFingerprints"] = {
+                "secretValueHash/v1": f["secret_value_hash"]
+            }
+        if f.get("source_frequency"):
+            result_obj["properties"]["source_frequency"] = f["source_frequency"]
+        results.append(result_obj)
 
     doc = {
         "$schema": _SARIF_SCHEMA,
