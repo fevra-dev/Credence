@@ -30,11 +30,16 @@ _SECRET_VALUE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Env values that are references/placeholders, not embedded secrets.
+_PLACEHOLDER_RE = re.compile(
+    r"^\s*(\$\{[^}]+\}|\$[A-Za-z_][A-Za-z0-9_]*|\{\{[^}]+\}\}|<[^>]+>)\s*$"
+)
+
 
 def _host(url: str) -> str:
     try:
         return (urlparse(url).hostname or "").lower()
-    except ValueError:
+    except (ValueError, UnicodeError):
         return ""
 
 
@@ -48,6 +53,7 @@ def _issue(ftype: str, severity: str, source: str, server_name: str,
         "description": description,
         "attack_class": _OWASP,
         "atlas_technique": _ATLAS,
+        "mitre_attack": "T1552",
     }
 
 
@@ -66,7 +72,8 @@ def score_server(server: Dict, source: str) -> List[Dict]:
 
     # Static credential in env (-30, HIGH)
     has_static_cred = any(
-        _SECRET_VALUE_RE.search(str(k)) or _SECRET_VALUE_RE.search(str(v))
+        (_SECRET_VALUE_RE.search(str(k)) or _SECRET_VALUE_RE.search(str(v)))
+        and not _PLACEHOLDER_RE.match(str(v))
         for k, v in env.items()
     ) and auth != "oauth"
     if has_static_cred:
@@ -113,6 +120,7 @@ def score_server(server: Dict, source: str) -> List[Dict]:
         score = min(100, score + 15)
         reasons.append("+15 oauth")
 
+    # defensive clamp; by construction score is already within [0,100]
     score = max(0, min(100, score))
     breakdown = "; ".join(reasons) if reasons else "no deductions"
     out.append({
@@ -124,11 +132,12 @@ def score_server(server: Dict, source: str) -> List[Dict]:
         "description": f"MCP server '{name}' posture score {score}/100 ({breakdown}).",
         "attack_class": _OWASP,
         "atlas_technique": _ATLAS,
+        "mitre_attack": "T1552",
     })
     return out
 
 
-def parse_servers(data: Dict, source: str) -> List[Dict]:
+def parse_servers(data: Dict) -> List[Dict]:
     """Normalise an mcpServers object into a list of server dicts for scoring."""
     servers = (data or {}).get("mcpServers") or {}
     if not isinstance(servers, dict):

@@ -59,6 +59,40 @@ def test_posture_summary_lists_deductions_in_description():
     assert 0 <= summary["score"] <= 100
 
 
+def test_env_var_passthrough_is_not_a_static_credential():
+    # ${VAR} / $VAR passthrough is the correct secure pattern, not a leak.
+    for val in ("${OPENAI_API_KEY}", "$OPENAI_API_KEY", "{{OPENAI_API_KEY}}", "<your-key-here>"):
+        server = {"name": "x", "url": "https://mcp.example.com", "version": "1.0.0",
+                  "env": {"OPENAI_API_KEY": val}}
+        findings = score_server(server, "mcp.json")
+        assert not any(f["type"] == "mcp_static_credential" for f in findings), val
+
+
+def test_real_embedded_secret_value_still_fires():
+    server = {"name": "x", "url": "https://mcp.example.com", "version": "1.0.0",
+              "env": {"OPENAI_API_KEY": "sk_live_realembeddedsecret123"}}
+    findings = score_server(server, "mcp.json")
+    assert any(f["type"] == "mcp_static_credential" for f in findings)
+
+
+def test_oauth_suppresses_static_credential():
+    server = {"name": "x", "url": "https://mcp.stripe.com", "version": "1.0",
+              "auth": "oauth", "env": {"API_KEY": "sk_live_x"}}
+    findings = score_server(server, "mcp.json")
+    assert not any(f["type"] == "mcp_static_credential" for f in findings)
+
+
+def test_score_and_severity_are_decoupled():
+    # Two LOW issues → score at most 80 (-15 unknown origin, -5 no version pin),
+    # but NO high-severity finding (gate stays clean).
+    server = {"name": "x", "url": "https://unknown.example"}  # unknown origin + no version pin
+    findings = score_server(server, "mcp.json")
+    summary = next(f for f in findings if f["type"] == "mcp_server_posture")
+    assert summary["severity"] == "INFO"
+    assert summary["score"] <= 80
+    assert not any(f["severity"] in ("HIGH", "CRITICAL") for f in findings)
+
+
 import json
 from gitexpose.agent_exposure.analyzer import analyze_configs
 

@@ -5,6 +5,7 @@ grants, and emit excessive_agent_capability findings — plus wildcard escalatio
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 from typing import Dict, List
@@ -37,8 +38,6 @@ _DESC = {
 }
 _REC = "Scope this grant to the minimum needed, or add an explicit deny; remove if unused."
 
-import json as _json
-
 _MCP_BASENAMES = ("mcp.json", ".mcp.json", "claude_desktop_config.json")
 
 
@@ -46,11 +45,11 @@ def _maybe_score_mcp(content: str, rel: str, tail: str) -> List[Dict]:
     if tail not in _MCP_BASENAMES:
         return []
     try:
-        data = _json.loads(content)
+        data = json.loads(content)
     except (ValueError, TypeError):
         return []
     out: List[Dict] = []
-    for server in mcp_score.parse_servers(data, rel):
+    for server in mcp_score.parse_servers(data):
         out.extend(mcp_score.score_server(server, rel))
     return out
 
