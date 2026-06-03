@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from gitexpose.advanced.known_bad_versions import (
+from credence.advanced.known_bad_versions import (
     KNOWN_BAD_VERSIONS,
     scan_requirements,
 )

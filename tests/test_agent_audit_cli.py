@@ -4,7 +4,7 @@ import json
 
 from click.testing import CliRunner
 
-from gitexpose.cli_advanced import cli
+from credence.cli_advanced import cli
 
 
 def _repo(tmp_path):

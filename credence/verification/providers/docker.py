@@ -20,7 +20,7 @@ _LOGIN_URL = "https://hub.docker.com/v2/users/login"
 
 async def verify(secret: str, *, timeout: float = 5.0) -> VerificationResult:
     """Check whether `secret` (a Docker Hub PAT) authenticates successfully."""
-    body = {"username": "gitexpose-verify", "password": secret}
+    body = {"username": "credence-verify", "password": secret}
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.post(

@@ -4,8 +4,8 @@ import inspect
 
 import pytest
 
-from gitexpose.advanced.mcp_server import GitExposeMCPServer
-from gitexpose.secrets.secret_extractor import SecretExtractor
+from credence.advanced.mcp_server import GitExposeMCPServer
+from credence.secrets.secret_extractor import SecretExtractor
 
 
 def test_secret_extractor_extract_has_no_validate_kwarg():

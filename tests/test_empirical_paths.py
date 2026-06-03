@@ -1,6 +1,6 @@
 """Tests for v0.2 empirical AI-tool config path additions."""
 
-from gitexpose.paths_extended import get_extended_paths
+from credence.paths_extended import get_extended_paths
 
 
 def _all_path_strings():
@@ -53,14 +53,14 @@ def test_env_backup_variants_present():
 
 def test_get_all_paths_combined_imports_cleanly():
     """Regression: get_all_paths_combined() must not raise ImportError on call."""
-    from gitexpose.paths_extended import get_all_paths_combined
+    from credence.paths_extended import get_all_paths_combined
     paths = get_all_paths_combined()
     assert len(paths) > 0
 
 
 def test_llm_exposure_scanner_categories_extended():
     """v0.2 expands AI_TOOL_CONFIGS with new categories."""
-    from gitexpose.advanced.llm_exposure_scanner import AI_TOOL_CONFIGS
+    from credence.advanced.llm_exposure_scanner import AI_TOOL_CONFIGS
 
     expected_categories = {
         "continue_dev",
@@ -76,7 +76,7 @@ def test_llm_exposure_scanner_categories_extended():
 
 
 def test_llm_exposure_scanner_categories_have_owasp_atlas():
-    from gitexpose.advanced.llm_exposure_scanner import AI_TOOL_CONFIGS
+    from credence.advanced.llm_exposure_scanner import AI_TOOL_CONFIGS
 
     for name, cfg in AI_TOOL_CONFIGS.items():
         assert "attack_class" in cfg, f"{name} missing attack_class"
@@ -85,7 +85,7 @@ def test_llm_exposure_scanner_categories_have_owasp_atlas():
 
 def test_llm_exposure_scanner_categories_use_severity_enum():
     """AI_TOOL_CONFIGS severities are Severity enum members, not strings."""
-    from gitexpose.advanced.llm_exposure_scanner import AI_TOOL_CONFIGS, Severity
+    from credence.advanced.llm_exposure_scanner import AI_TOOL_CONFIGS, Severity
 
     for name, cfg in AI_TOOL_CONFIGS.items():
         assert isinstance(cfg["severity"], Severity), (

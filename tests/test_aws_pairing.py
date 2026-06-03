@@ -6,8 +6,8 @@ import pytest
 import respx
 import httpx
 
-from gitexpose.verification.engine import pair_aws_credentials, verify_secrets
-from gitexpose.verification.result import VerificationStatus
+from credence.verification.engine import pair_aws_credentials, verify_secrets
+from credence.verification.result import VerificationStatus
 
 
 def test_pair_aws_sets_verify_input_for_same_source():
@@ -54,7 +54,7 @@ async def test_aws_pairing_end_to_end_through_extractor():
     must extract the clean 40-char secret or SigV4 signs the wrong key and a LIVE
     key reports DEAD."""
     import httpx
-    from gitexpose.secrets.secret_extractor import SecretExtractor
+    from credence.secrets.secret_extractor import SecretExtractor
     respx.post("https://sts.amazonaws.com/").mock(
         return_value=httpx.Response(200, text="<GetCallerIdentityResponse></GetCallerIdentityResponse>")
     )

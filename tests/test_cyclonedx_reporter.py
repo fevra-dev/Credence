@@ -2,8 +2,8 @@
 
 import json
 
-from gitexpose.supply_chain import Dependency
-from gitexpose.reporters.cyclonedx_reporter import build_bom
+from credence.supply_chain import Dependency
+from credence.reporters.cyclonedx_reporter import build_bom
 
 
 def _dep(name="lodash", version="4.17.20"):

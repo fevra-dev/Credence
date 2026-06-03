@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from gitexpose.supply_chain.lockfiles.javascript import (
+from credence.supply_chain.lockfiles.javascript import (
     parse_package_lock, parse_yarn_lock,
 )
 

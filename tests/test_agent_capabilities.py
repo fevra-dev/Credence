@@ -1,6 +1,6 @@
 """Tests for the agent-exposure capability taxonomy."""
 
-from gitexpose.agent_exposure import CapabilityClass, Grant
+from credence.agent_exposure import CapabilityClass, Grant
 
 
 def test_models_importable():
@@ -9,7 +9,7 @@ def test_models_importable():
     assert CapabilityClass.SHELL_EXEC.value == "shell_exec"
 
 
-from gitexpose.agent_exposure.capabilities import (  # noqa: E402
+from credence.agent_exposure.capabilities import (  # noqa: E402
     classify, BASE_SEVERITY, ATTACK_TECHNIQUE,
 )
 

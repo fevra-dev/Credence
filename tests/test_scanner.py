@@ -3,8 +3,8 @@
 import re
 import pytest
 from aioresponses import aioresponses
-from gitexpose.scanner import GitExposeScanner
-from gitexpose.models import Severity
+from credence.scanner import GitExposeScanner
+from credence.models import Severity
 
 
 class TestScanner:

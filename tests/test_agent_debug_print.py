@@ -1,8 +1,8 @@
 """Agent debug-print AST detector: flags print/logging of credential-named vars."""
 from pathlib import Path
 
-from gitexpose.agent_exposure import scan as agent_scan
-from gitexpose.agent_exposure.debug_print import scan
+from credence.agent_exposure import scan as agent_scan
+from credence.agent_exposure.debug_print import scan
 
 
 def _py(tmp_path: Path, name: str, body: str) -> Path:

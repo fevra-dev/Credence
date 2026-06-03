@@ -99,9 +99,9 @@ class GitExposeMCPServer:
     ```json
     {
         "mcpServers": {
-            "gitexpose": {
+            "credence": {
                 "command": "python",
-                "args": ["-m", "gitexpose.mcp_server"]
+                "args": ["-m", "credence.mcp_server"]
             }
         }
     }
@@ -123,7 +123,7 @@ class GitExposeMCPServer:
         # Comprehensive scan tool
         self._register_tool(
             ToolDefinition(
-                name="gitexpose_scan",
+                name="credence_scan",
                 description="Comprehensive scan for exposed sensitive files including .git directories, environment files, backups, configs, and more. Returns vulnerability findings with severity levels.",
                 parameters=[
                     ToolParameter("target", "string", "Target URL or domain to scan"),
@@ -144,7 +144,7 @@ class GitExposeMCPServer:
         # Git repository dumper
         self._register_tool(
             ToolDefinition(
-                name="gitexpose_git_dump",
+                name="credence_git_dump",
                 description="Download and reconstruct exposed .git repositories. Extracts source code, commit history, and scans for secrets in git history.",
                 parameters=[
                     ToolParameter("target", "string", "Target URL with exposed .git directory"),
@@ -163,7 +163,7 @@ class GitExposeMCPServer:
         # Secret extraction
         self._register_tool(
             ToolDefinition(
-                name="gitexpose_extract_secrets",
+                name="credence_extract_secrets",
                 description="Extract and optionally validate credentials from content. Detects AWS keys, API tokens, database URLs, private keys, and 30+ secret types.",
                 parameters=[
                     ToolParameter("content", "string", "Text content to analyze for secrets"),
@@ -182,7 +182,7 @@ class GitExposeMCPServer:
         # React2Shell detection
         self._register_tool(
             ToolDefinition(
-                name="gitexpose_react2shell_detect",
+                name="credence_react2shell_detect",
                 description="Detect React2Shell (CVE-2025-55182) vulnerability in Next.js/React applications. Scans for exposed RSC endpoints, Flight protocol, and vulnerable configurations.",
                 parameters=[
                     ToolParameter("target", "string", "Target URL to scan for React2Shell vulnerability"),
@@ -200,7 +200,7 @@ class GitExposeMCPServer:
         # ML model scanning
         self._register_tool(
             ToolDefinition(
-                name="gitexpose_ml_model_scan",
+                name="credence_ml_model_scan",
                 description="Scan for exposed ML model files that could contain malicious payloads. Detects pickle, PyTorch, TensorFlow, and ONNX models with RCE potential.",
                 parameters=[
                     ToolParameter("target", "string", "Target URL to scan for exposed ML models"),
@@ -218,7 +218,7 @@ class GitExposeMCPServer:
         # LLM/RAG exposure scanning
         self._register_tool(
             ToolDefinition(
-                name="gitexpose_llm_exposure_scan",
+                name="credence_llm_exposure_scan",
                 description="Scan for exposed AI/LLM infrastructure including vector databases, system prompts, RAG configurations, and API keys.",
                 parameters=[
                     ToolParameter("target", "string", "Target URL to scan for LLM/RAG exposure"),
@@ -235,7 +235,7 @@ class GitExposeMCPServer:
         # Invisible Unicode detection
         self._register_tool(
             ToolDefinition(
-                name="gitexpose_unicode_detect",
+                name="credence_unicode_detect",
                 description="Detect invisible Unicode characters used in supply chain attacks (GlassWorm pattern). Scans for variation selectors, zero-width chars, bidirectional overrides, and homoglyphs.",
                 parameters=[
                     ToolParameter("target", "string", "Target URL to scan for invisible Unicode"),
@@ -253,7 +253,7 @@ class GitExposeMCPServer:
         # Source map analysis
         self._register_tool(
             ToolDefinition(
-                name="gitexpose_sourcemap_scan",
+                name="credence_sourcemap_scan",
                 description="Detect and analyze exposed JavaScript source maps. Can recover original source code from .map files.",
                 parameters=[
                     ToolParameter("target", "string", "Target URL to scan for source maps"),
@@ -271,7 +271,7 @@ class GitExposeMCPServer:
         # CI/CD exposure scanning
         self._register_tool(
             ToolDefinition(
-                name="gitexpose_cicd_scan",
+                name="credence_cicd_scan",
                 description="Scan for exposed CI/CD pipeline configurations, logs, and artifacts. Detects GitHub Actions, GitLab CI, Jenkins, and other pipeline configs.",
                 parameters=[
                     ToolParameter("target", "string", "Target URL to scan for CI/CD exposure"),
@@ -288,7 +288,7 @@ class GitExposeMCPServer:
         # API discovery
         self._register_tool(
             ToolDefinition(
-                name="gitexpose_api_discovery",
+                name="credence_api_discovery",
                 description="Discover and analyze API endpoints including GraphQL introspection, OpenAPI/Swagger specs, and REST endpoint enumeration.",
                 parameters=[
                     ToolParameter("target", "string", "Target URL for API discovery"),
@@ -702,7 +702,7 @@ class GitExposeMCPServer:
                     "resources": {},
                 },
                 "serverInfo": {
-                    "name": "gitexpose",
+                    "name": "credence",
                     "version": self.VERSION,
                     "description": "Security scanner for exposed sensitive files, git repositories, and AI infrastructure",
                 }

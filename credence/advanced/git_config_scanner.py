@@ -1,4 +1,4 @@
-# gitexpose/advanced/git_config_scanner.py
+# credence/advanced/git_config_scanner.py
 """Structural git-metadata credential scanner.
 
 Parses .git/config and .gitmodules with configparser ONLY — never invokes git

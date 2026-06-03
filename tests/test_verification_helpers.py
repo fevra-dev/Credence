@@ -4,8 +4,8 @@ import pytest
 import respx
 import httpx
 
-from gitexpose.verification.helpers import bearer_token_check, redact
-from gitexpose.verification.result import VerificationResult, VerificationStatus
+from credence.verification.helpers import bearer_token_check, redact
+from credence.verification.result import VerificationResult, VerificationStatus
 
 
 def test_redact_short_secret():

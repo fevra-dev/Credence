@@ -8,7 +8,7 @@ import pytest
 import respx
 import httpx
 
-from gitexpose.verification.providers import VERIFIERS
+from credence.verification.providers import VERIFIERS
 
 SENTINEL = "CANARY-DO-NOT-LEAK-1234567890ABCDEFGHIJ"
 
@@ -27,7 +27,7 @@ async def test_no_verifier_leaks_raw_secret(pattern_name, caplog, capsys):
         else SENTINEL
     )
 
-    with caplog.at_level(logging.DEBUG, logger="gitexpose"):
+    with caplog.at_level(logging.DEBUG, logger="credence"):
         result = await VERIFIERS[pattern_name](secret_value)
 
     captured = capsys.readouterr()

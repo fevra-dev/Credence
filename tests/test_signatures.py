@@ -1,8 +1,8 @@
 """Test signature matching."""
 
 import pytest
-from gitexpose.signatures import match_signatures, check_false_positive
-from gitexpose.models import PathDefinition, Category, Severity
+from credence.signatures import match_signatures, check_false_positive
+from credence.models import PathDefinition, Category, Severity
 
 
 class TestFalsePositiveDetection:

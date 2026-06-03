@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from gitexpose.advanced.local_fs_scanner import LocalFilesystemScanner
+from credence.advanced.local_fs_scanner import LocalFilesystemScanner
 
 REPO = Path(__file__).parent / "fixtures" / "synthetic_repo"
 

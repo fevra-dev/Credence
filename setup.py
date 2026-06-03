@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="gitexpose",
+    name="credence",
     version="0.4.0",
     description="Exposure intelligence for AI and dev infrastructure — credential, AI-tool config, and supply-chain detection",
     long_description=open("README.md").read(),
@@ -11,7 +11,7 @@ setup(
     author="GitExpose Contributors",
     license="MIT",
     packages=find_packages(),
-    package_data={"gitexpose": ["data/*.json"]},
+    package_data={"credence": ["data/*.json"]},
     include_package_data=True,
     python_requires=">=3.9",
     install_requires=[
@@ -52,7 +52,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "gitexpose=gitexpose.cli:main",
+            "credence=credence.cli:main",
         ],
     },
     classifiers=[

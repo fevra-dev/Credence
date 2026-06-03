@@ -1,7 +1,7 @@
 """Unit tests for the git-history diff parser. The parser is a pure function over
 already-decoded lines (no git spawned), so we feed it canned `git log -p` output."""
 
-from gitexpose.git_history.diff_parser import CommitMeta, parse_history
+from credence.git_history.diff_parser import CommitMeta, parse_history
 
 SENT = "\x01"  # sentinel prefix used in --pretty=format
 

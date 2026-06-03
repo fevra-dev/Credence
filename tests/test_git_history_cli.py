@@ -8,7 +8,7 @@ import httpx
 import respx
 from click.testing import CliRunner
 
-from gitexpose.cli_advanced import cli
+from credence.cli_advanced import cli
 
 
 def _run(cmd, cwd):

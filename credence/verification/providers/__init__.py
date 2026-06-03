@@ -3,7 +3,7 @@
 Each entry: pattern_name (str) → Callable[[str], Awaitable[VerificationResult]]
 
 Lookup is by `pattern_name` matching the `type` field of secret-dicts (which is
-the same as the JSON pattern name in `gitexpose/data/credential_patterns_v02.json`).
+the same as the JSON pattern name in `credence/data/credential_patterns_v02.json`).
 """
 
 from __future__ import annotations

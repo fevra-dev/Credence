@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from gitexpose.agent_exposure.system_prompt import build_shingles, _DEFAULT_PATH
+from credence.agent_exposure.system_prompt import build_shingles, _DEFAULT_PATH
 
 K = 8
 MIN_MATCH = 5

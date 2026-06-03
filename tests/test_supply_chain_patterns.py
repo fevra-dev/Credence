@@ -1,6 +1,6 @@
 """Tests for supply-chain text patterns (.pth persistence, AI C2 beacon, k8s exfil)."""
 
-from gitexpose.advanced.supply_chain_patterns import scan_text
+from credence.advanced.supply_chain_patterns import scan_text
 
 
 def test_pth_persistence_detected():

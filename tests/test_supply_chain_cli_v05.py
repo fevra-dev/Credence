@@ -7,7 +7,7 @@ import httpx
 import respx
 from click.testing import CliRunner
 
-from gitexpose.cli_advanced import cli
+from credence.cli_advanced import cli
 
 QUERYBATCH = "https://api.osv.dev/v1/querybatch"
 VULN = "https://api.osv.dev/v1/vulns/GHSA-xxxx"

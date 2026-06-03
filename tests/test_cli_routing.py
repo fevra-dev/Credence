@@ -1,9 +1,9 @@
-"""Routing + command-resolution tests for the unified `gitexpose` CLI (v0.6.1)."""
+"""Routing + command-resolution tests for the unified `credence` CLI (v0.6.1)."""
 
-import gitexpose
+import credence
 from click.testing import CliRunner
 
-from gitexpose.cli_advanced import cli
+from credence.cli_advanced import cli
 
 
 def test_full_audit_command_registered():
@@ -15,10 +15,10 @@ def test_version_option_matches_package():
     # the group's --version must reflect the real package version, not a stale literal
     result = CliRunner().invoke(cli, ["--version"])
     assert result.exit_code == 0
-    assert gitexpose.__version__ in result.output
+    assert credence.__version__ in result.output
 
 
-from gitexpose.cli import _route_argv  # noqa: E402
+from credence.cli import _route_argv  # noqa: E402
 
 
 def _known():

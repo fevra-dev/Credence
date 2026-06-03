@@ -1,6 +1,6 @@
 """Tests for v0.2 additions to data models."""
 
-from gitexpose.models import Category, ScanResult, Severity
+from credence.models import Category, ScanResult, Severity
 
 
 def test_scan_result_has_optional_attack_class():

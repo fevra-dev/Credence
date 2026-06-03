@@ -2,8 +2,8 @@
 import base64
 from pathlib import Path
 
-from gitexpose.advanced.git_config_scanner import scan
-from gitexpose.advanced.local_fs_scanner import LocalFilesystemScanner
+from credence.advanced.git_config_scanner import scan
+from credence.advanced.local_fs_scanner import LocalFilesystemScanner
 
 
 def _write_git_config(root: Path, body: str) -> None:

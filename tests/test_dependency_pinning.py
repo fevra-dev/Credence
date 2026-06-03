@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from gitexpose.advanced.dependency_pinning import DependencyPinningScanner
+from credence.advanced.dependency_pinning import DependencyPinningScanner
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

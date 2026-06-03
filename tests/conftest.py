@@ -1,8 +1,8 @@
 """pytest fixtures."""
 
 import pytest
-from gitexpose.scanner import GitExposeScanner
-from gitexpose.paths import get_all_paths
+from credence.scanner import GitExposeScanner
+from credence.paths import get_all_paths
 
 
 @pytest.fixture

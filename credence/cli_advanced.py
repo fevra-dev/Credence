@@ -140,8 +140,8 @@ def full_audit(target, concurrency, timeout, output, out_file, git_dump, react2s
     Comprehensive security scan of a target.
     
     Example:
-        gitexpose scan example.com --full-audit
-        gitexpose scan example.com --react2shell --ml-models
+        credence scan example.com --full-audit
+        credence scan example.com --react2shell --ml-models
     """
     if not quiet:
         print_banner()
@@ -506,7 +506,7 @@ def output_html(results: dict, out_file: Optional[str]):
     """Output results as HTML report"""
     html = generate_html_report(results)
 
-    out_file = out_file or "gitexpose_report.html"
+    out_file = out_file or "credence_report.html"
     with open(out_file, 'w') as f:
         f.write(html)
 
@@ -857,7 +857,7 @@ def add_verify_args(func):
 @click.option("--track", is_flag=True, default=False,
               help="Record secret hashes in a cross-source registry for orphan signal (opt-in).")
 @click.option("--registry", "registry_path", type=click.Path(), default=None,
-              help="Registry file path (implies --track; default ~/.gitexpose/registry.json "
+              help="Registry file path (implies --track; default ~/.credence/registry.json "
                    "when --track is used).")
 @add_verify_args
 @add_fail_on_arg
@@ -921,9 +921,9 @@ def supply_chain(path: str, output: str, out_file: str, offline: bool,
 
     if verify:
         import asyncio as _asyncio
-        from gitexpose.verification import verify_secrets
-        from gitexpose.verification.engine import pair_aws_credentials
-        from gitexpose.verification.banner import print_verify_banner
+        from credence.verification import verify_secrets
+        from credence.verification.engine import pair_aws_credentials
+        from credence.verification.banner import print_verify_banner
 
         print_verify_banner(suppress=no_verify_banner)
 
@@ -1162,7 +1162,7 @@ def git_history(path, output, out_file, since, max_commits,
     sys.exit(exit_code_for(findings, fail_on))
 
 
-# Register the mature web scanner (gitexpose/cli.py) as the canonical `scan` subcommand.
+# Register the mature web scanner (credence/cli.py) as the canonical `scan` subcommand.
 # Imported here (not in cli.py at module level) so the import stays one-way / cycle-free.
 from .cli import scan as _web_scan  # noqa: E402
 cli.add_command(_web_scan)

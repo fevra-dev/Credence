@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from gitexpose.advanced.local_fs_scanner import LocalFilesystemScanner
+from credence.advanced.local_fs_scanner import LocalFilesystemScanner
 
 
 @pytest.fixture

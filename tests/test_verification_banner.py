@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from gitexpose.verification.banner import print_verify_banner
+from credence.verification.banner import print_verify_banner
 
 
 def test_banner_prints_to_stderr(capsys):

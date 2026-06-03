@@ -9,7 +9,7 @@ import pytest
 import respx
 from click.testing import CliRunner
 
-from gitexpose.cli_advanced import cli
+from credence.cli_advanced import cli
 
 FIXTURE = Path(__file__).parent / "fixtures" / "synthetic_repo_v03"
 

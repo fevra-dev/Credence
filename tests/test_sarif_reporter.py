@@ -7,8 +7,8 @@ import pytest
 
 jsonschema = pytest.importorskip("jsonschema")
 
-from gitexpose.models import Category, ScanReport, ScanResult, Severity, TargetReport
-from gitexpose.reporters.sarif_reporter import SARIFReporter
+from credence.models import Category, ScanReport, ScanResult, Severity, TargetReport
+from credence.reporters.sarif_reporter import SARIFReporter
 
 SCHEMA_PATH = Path(__file__).parent / "fixtures" / "sarif-schema-2.1.0.json"
 

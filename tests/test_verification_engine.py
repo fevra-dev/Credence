@@ -4,14 +4,14 @@ import asyncio
 
 import pytest
 
-from gitexpose.verification.engine import verify_secrets
-from gitexpose.verification.result import VerificationResult, VerificationStatus
+from credence.verification.engine import verify_secrets
+from credence.verification.result import VerificationResult, VerificationStatus
 
 
 @pytest.mark.asyncio
 async def test_returns_skipped_for_unregistered_pattern(monkeypatch):
     monkeypatch.setattr(
-        "gitexpose.verification.engine.VERIFIERS",
+        "credence.verification.engine.VERIFIERS",
         {},  # empty registry
         raising=False,
     )
@@ -26,7 +26,7 @@ async def test_runs_registered_verifier_and_writes_status(monkeypatch):
         return VerificationResult(VerificationStatus.VERIFIED, "200")
 
     monkeypatch.setattr(
-        "gitexpose.verification.engine.VERIFIERS",
+        "credence.verification.engine.VERIFIERS",
         {"openai": fake_verifier},
         raising=False,
     )
@@ -51,7 +51,7 @@ async def test_dedups_same_secret_within_run(monkeypatch):
         return VerificationResult(VerificationStatus.VERIFIED, "200")
 
     monkeypatch.setattr(
-        "gitexpose.verification.engine.VERIFIERS",
+        "credence.verification.engine.VERIFIERS",
         {"openai": counting_verifier},
         raising=False,
     )
@@ -71,7 +71,7 @@ async def test_exception_in_verifier_yields_error_status(monkeypatch):
         raise RuntimeError("boom")
 
     monkeypatch.setattr(
-        "gitexpose.verification.engine.VERIFIERS",
+        "credence.verification.engine.VERIFIERS",
         {"openai": bad_verifier},
         raising=False,
     )
@@ -95,7 +95,7 @@ async def test_semaphore_caps_concurrent_calls(monkeypatch):
         return VerificationResult(VerificationStatus.VERIFIED, "200")
 
     monkeypatch.setattr(
-        "gitexpose.verification.engine.VERIFIERS",
+        "credence.verification.engine.VERIFIERS",
         {"openai": slow_verifier},
         raising=False,
     )
@@ -111,7 +111,7 @@ async def test_timeout_in_verifier_yields_error(monkeypatch):
         return VerificationResult(VerificationStatus.VERIFIED, "200")
 
     monkeypatch.setattr(
-        "gitexpose.verification.engine.VERIFIERS",
+        "credence.verification.engine.VERIFIERS",
         {"openai": hangs},
         raising=False,
     )
@@ -124,13 +124,13 @@ async def test_timeout_in_verifier_yields_error(monkeypatch):
 @pytest.mark.asyncio
 async def test_handles_mixed_finding_shapes(monkeypatch):
     """Engine must accept both ScanResult-shaped objects and secret-dicts."""
-    from gitexpose.models import Category, ScanResult, Severity
+    from credence.models import Category, ScanResult, Severity
 
     async def ok(secret):
         return VerificationResult(VerificationStatus.VERIFIED, "200")
 
     monkeypatch.setattr(
-        "gitexpose.verification.engine.VERIFIERS",
+        "credence.verification.engine.VERIFIERS",
         {"openai": ok, "github_pat": ok},
         raising=False,
     )

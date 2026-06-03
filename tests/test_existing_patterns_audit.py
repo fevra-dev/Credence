@@ -1,7 +1,7 @@
 """Audit test — documents what credential patterns already exist in v0.1.0.
 This test exists to lock the audit findings into CI; delete after Task 4 ships."""
 
-from gitexpose.secrets.secret_extractor import SecretExtractor
+from credence.secrets.secret_extractor import SecretExtractor
 
 
 def test_v01_pattern_inventory():

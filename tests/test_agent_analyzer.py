@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from gitexpose.agent_exposure.analyzer import analyze_configs
+from credence.agent_exposure.analyzer import analyze_configs
 
 
 def _write(tmp_path, rel, content):
@@ -89,8 +89,8 @@ def test_scan_merges_capability_and_prompt_findings(tmp_path, monkeypatch):
     # grab the module object unambiguously — `from ... import scan` would resolve to
     # the re-exported scan() *function*, not the module we need to monkeypatch.
     import importlib
-    scan_mod = importlib.import_module("gitexpose.agent_exposure.scan")
-    from gitexpose.agent_exposure.system_prompt import build_shingles
+    scan_mod = importlib.import_module("credence.agent_exposure.scan")
+    from credence.agent_exposure.system_prompt import build_shingles
 
     # an over-permissioned MCP config
     (tmp_path / ".cursor").mkdir()

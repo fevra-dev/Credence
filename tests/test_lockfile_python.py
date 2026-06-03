@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from gitexpose.supply_chain import Dependency, Vulnerability
-from gitexpose.supply_chain.lockfiles.python import (
+from credence.supply_chain import Dependency, Vulnerability
+from credence.supply_chain.lockfiles.python import (
     parse_requirements, parse_poetry_lock, parse_pipfile_lock,
 )
 

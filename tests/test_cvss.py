@@ -2,7 +2,7 @@
 
 import pytest
 
-from gitexpose.supply_chain.cvss import base_score_from_vector, bucket, severity_from_osv
+from credence.supply_chain.cvss import base_score_from_vector, bucket, severity_from_osv
 
 
 @pytest.mark.parametrize("vector, expected", [

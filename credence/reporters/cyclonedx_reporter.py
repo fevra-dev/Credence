@@ -63,8 +63,8 @@ def build_bom(deps: List[Dependency], findings: List[Dict]) -> str:
             bom_ref=dep.purl,
             purl=PackageURL.from_string(dep.purl),
             properties=[
-                Property(name="gitexpose:direct", value=str(dep.direct).lower()),
-                Property(name="gitexpose:source", value=dep.source_file),
+                Property(name="credence:direct", value=str(dep.direct).lower()),
+                Property(name="credence:source", value=dep.source_file),
             ],
         )
         bom.components.add(comp)

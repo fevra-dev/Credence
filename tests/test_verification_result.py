@@ -2,7 +2,7 @@
 
 import pytest
 
-from gitexpose.verification.result import VerificationResult, VerificationStatus
+from credence.verification.result import VerificationResult, VerificationStatus
 
 
 def test_status_enum_values():

@@ -1,9 +1,9 @@
 """Tests for the function-calling content adapter + content-adapter registry."""
 
-from gitexpose.agent_exposure.adapters.base import (
+from credence.agent_exposure.adapters.base import (
     CONTENT_ADAPTERS, _register_content, content_adapters,
 )
-from gitexpose.agent_exposure.models import Grant
+from credence.agent_exposure.models import Grant
 
 
 def test_content_adapter_registry_register_and_list():
@@ -13,9 +13,9 @@ def test_content_adapter_registry_register_and_list():
     CONTENT_ADAPTERS.remove(marker)
 
 
-from gitexpose.agent_exposure.adapters.function_calling import parse_function_calling  # noqa: E402
-from gitexpose.agent_exposure.capabilities import classify  # noqa: E402
-from gitexpose.agent_exposure.models import CapabilityClass  # noqa: E402
+from credence.agent_exposure.adapters.function_calling import parse_function_calling  # noqa: E402
+from credence.agent_exposure.capabilities import classify  # noqa: E402
+from credence.agent_exposure.models import CapabilityClass  # noqa: E402
 
 
 def test_openai_nested_shape():

@@ -2,7 +2,7 @@
 
 import json
 
-from gitexpose.agent_exposure.sarif import to_sarif
+from credence.agent_exposure.sarif import to_sarif
 
 
 _FINDINGS = [

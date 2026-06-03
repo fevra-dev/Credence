@@ -2,8 +2,8 @@
 
 import json
 
-from gitexpose.models import Category, ScanReport, ScanResult, Severity, TargetReport
-from gitexpose.reporters import (
+from credence.models import Category, ScanReport, ScanResult, Severity, TargetReport
+from credence.reporters import (
     ConsoleReporter,
     CSVReporter,
     HTMLReporter,

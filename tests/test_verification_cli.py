@@ -4,7 +4,7 @@ import json
 
 from click.testing import CliRunner
 
-from gitexpose.cli_advanced import cli
+from credence.cli_advanced import cli
 
 
 def test_supply_chain_help_shows_verify_flags():
@@ -41,7 +41,7 @@ def test_supply_chain_without_verify_marks_findings_skipped(tmp_path):
 def test_supply_chain_console_shows_verification_when_verified(tmp_path, monkeypatch):
     """With --verify, console output should surface a verification tag.
     We monkeypatch verify_secrets to mark findings verified without network."""
-    import gitexpose.verification.engine as engine_mod
+    import credence.verification.engine as engine_mod
 
     target = tmp_path / "creds.env"
     target.write_text("GROQ_API_KEY=gsk_" + "a" * 52 + "\n")
@@ -53,7 +53,7 @@ def test_supply_chain_console_shows_verification_when_verified(tmp_path, monkeyp
                 s["verification_detail"] = "200"
         return secrets
 
-    # The command does `from gitexpose.verification import verify_secrets` inside
+    # The command does `from credence.verification import verify_secrets` inside
     # the function body, which triggers __getattr__ and returns engine.verify_secrets.
     # Patching the engine module directly ensures the fake is returned by __getattr__.
     monkeypatch.setattr(engine_mod, "verify_secrets", fake_verify)

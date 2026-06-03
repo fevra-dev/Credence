@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from gitexpose.advanced.slopsquatting import (
+from credence.advanced.slopsquatting import (
     KNOWN_SLOPSQUATS,
     check,
     scan_requirements,

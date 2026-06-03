@@ -1,4 +1,4 @@
-# gitexpose/cli_gating.py
+# credence/cli_gating.py
 """Shared --fail-on severity exit gate for local subcommands.
 
 Findings are always printed by the caller; this module only decides the process

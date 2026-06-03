@@ -1,6 +1,6 @@
 """Tests for the CL4R1T4S system-prompt fingerprint matcher."""
 
-from gitexpose.agent_exposure.system_prompt import build_shingles, match_text
+from credence.agent_exposure.system_prompt import build_shingles, match_text
 
 
 _LEAK = (

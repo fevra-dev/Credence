@@ -1,6 +1,6 @@
 """Tests for lock-file name normalization, PURL building, and the parse_all dispatcher."""
 
-from gitexpose.supply_chain.lockfiles.base import normalize_name, make_purl
+from credence.supply_chain.lockfiles.base import normalize_name, make_purl
 
 
 def test_normalize_pypi_pep503():
@@ -25,7 +25,7 @@ def test_make_purl_npm_scoped():
 
 from pathlib import Path
 
-from gitexpose.supply_chain.lockfiles import parse_all
+from credence.supply_chain.lockfiles import parse_all
 
 
 def test_parse_all_walks_mixed_repo(tmp_path: Path):

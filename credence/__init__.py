@@ -18,15 +18,15 @@ Core Capabilities:
 - MCP server for AI agent integration
 
 Usage:
-    from gitexpose import GitExposeScanner
+    from credence import GitExposeScanner
     
     scanner = GitExposeScanner()
     report = scanner.scan_sync(['example.com'])
     
     # Advanced modules
-    from gitexpose.advanced import React2ShellDetector, MLModelScanner
-    from gitexpose.git import GitDumper
-    from gitexpose.secrets import SecretExtractor
+    from credence.advanced import React2ShellDetector, MLModelScanner
+    from credence.git import GitDumper
+    from credence.secrets import SecretExtractor
 """
 
 __version__ = "0.8.1"
@@ -67,7 +67,7 @@ __all__ = [
     'ScanReport',
     'TargetReport',
     'ScanResult',
-    # Submodules (accessed via gitexpose.advanced, etc.)
+    # Submodules (accessed via credence.advanced, etc.)
     'advanced',
     'git',
     'secrets',

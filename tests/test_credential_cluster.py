@@ -1,6 +1,6 @@
 """Tests for paired-secret cluster detection and multi-provider-key file flagging."""
 
-from gitexpose.advanced.credential_cluster import process
+from credence.advanced.credential_cluster import process
 
 
 def _secret(type_: str, source: str = "x.env") -> dict:

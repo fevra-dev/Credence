@@ -1,7 +1,7 @@
 """--fail-on severity gating: findings always print; exit code is thresholded."""
 from click.testing import CliRunner
-from gitexpose.cli_advanced import cli
-from gitexpose.cli_gating import exit_code_for, SEVERITY_ORDER
+from credence.cli_advanced import cli
+from credence.cli_gating import exit_code_for, SEVERITY_ORDER
 
 
 def test_severity_order_is_total():

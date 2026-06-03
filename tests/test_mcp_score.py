@@ -1,5 +1,5 @@
 """MCP security score: per-issue findings + INFO posture summary; score != severity."""
-from gitexpose.agent_exposure.mcp_score import score_server
+from credence.agent_exposure.mcp_score import score_server
 
 
 def test_clean_known_https_oauth_server_scores_high():
@@ -94,7 +94,7 @@ def test_score_and_severity_are_decoupled():
 
 
 import json
-from gitexpose.agent_exposure.analyzer import analyze_configs
+from credence.agent_exposure.analyzer import analyze_configs
 
 
 def test_analyze_configs_emits_mcp_posture(tmp_path):

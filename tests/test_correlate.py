@@ -1,7 +1,7 @@
 """Tests for correlating OSV results into vulnerable_dependency findings."""
 
-from gitexpose.supply_chain import Dependency, Vulnerability
-from gitexpose.supply_chain.correlate import build_vuln_findings, exploitability_sort_key
+from credence.supply_chain import Dependency, Vulnerability
+from credence.supply_chain.correlate import build_vuln_findings, exploitability_sort_key
 
 
 def _dep(name="lodash", version="4.17.20", direct=True):

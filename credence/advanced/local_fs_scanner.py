@@ -71,7 +71,7 @@ class LocalFilesystemScanner:
         registry = None
         if track:
             from .secret_registry import SecretRegistry
-            default = Path.home() / ".gitexpose" / "registry.json"
+            default = Path.home() / ".credence" / "registry.json"
             registry = SecretRegistry(Path(registry_path) if registry_path else default)
         # v0.2 — cluster post-processor adds blast-radius findings (+ v0.8 enrichment)
         from .credential_cluster import process as cluster_process

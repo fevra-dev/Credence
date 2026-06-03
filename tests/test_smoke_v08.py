@@ -7,8 +7,8 @@ cannot be version-controlled.
 import json
 from pathlib import Path
 
-from gitexpose.advanced.local_fs_scanner import LocalFilesystemScanner
-from gitexpose.agent_exposure import scan as agent_scan
+from credence.advanced.local_fs_scanner import LocalFilesystemScanner
+from credence.agent_exposure import scan as agent_scan
 
 
 def _build_repo(root: Path) -> None:

@@ -2,8 +2,8 @@
 GitExpose CLI interface.
 
 Usage:
-    gitexpose example.com
-    gitexpose -f targets.txt -o json --out-file results.json
+    credence example.com
+    credence -f targets.txt -o json --out-file results.json
 """
 
 import logging
@@ -102,10 +102,10 @@ def scan(
 
     \b
     Examples:
-        gitexpose example.com
-        gitexpose example.com example.org
-        gitexpose -f targets.txt -o json --out-file results.json
-        gitexpose -f targets.txt -c 100 -t 5 --quiet
+        credence example.com
+        credence example.com example.org
+        credence -f targets.txt -o json --out-file results.json
+        credence -f targets.txt -c 100 -t 5 --quiet
     """
     # Handle version flag
     if version:
@@ -190,18 +190,18 @@ _PASSTHROUGH = {"--help", "-h", "--version"}
 
 def _route_argv(argv, known):
     """Prepend the default `scan` command unless argv already names a subcommand
-    or is a group-level --help/--version. Keeps bare-target `gitexpose <host>` and
-    leading-option `gitexpose -f targets.txt` routing to the web scanner."""
+    or is a group-level --help/--version. Keeps bare-target `credence <host>` and
+    leading-option `credence -f targets.txt` routing to the web scanner."""
     if argv and argv[0] not in known and argv[0] not in _PASSTHROUGH:
         return ["scan", *argv]
     return list(argv)
 
 
 def main():
-    """Console entry point: the unified `gitexpose` group with a default `scan` command."""
+    """Console entry point: the unified `credence` group with a default `scan` command."""
     from .cli_advanced import cli as cli_group  # lazy import → no import cycle
     known = set(cli_group.commands)
-    cli_group.main(args=_route_argv(sys.argv[1:], known), prog_name="gitexpose")
+    cli_group.main(args=_route_argv(sys.argv[1:], known), prog_name="credence")
 
 
 if __name__ == "__main__":

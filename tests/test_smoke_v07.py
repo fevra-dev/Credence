@@ -5,7 +5,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from gitexpose.cli_advanced import cli
+from credence.cli_advanced import cli
 
 FIX = Path(__file__).parent / "fixtures" / "agent_repo_v07"
 

@@ -3,7 +3,7 @@
 
 from click.testing import CliRunner
 
-from gitexpose.cli_advanced import cli, add_verify_args
+from credence.cli_advanced import cli, add_verify_args
 
 
 def test_add_verify_args_is_callable_decorator():

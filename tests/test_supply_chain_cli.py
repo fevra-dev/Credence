@@ -1,10 +1,10 @@
-"""End-to-end tests for the `gitexpose supply-chain` CLI subcommand."""
+"""End-to-end tests for the `credence supply-chain` CLI subcommand."""
 
 from pathlib import Path
 
 from click.testing import CliRunner
 
-from gitexpose.cli_advanced import cli
+from credence.cli_advanced import cli
 
 
 def test_supply_chain_command_registered():
@@ -90,10 +90,10 @@ def test_supply_chain_json_has_no_internal_verify_input(tmp_path):
 
 
 def test_main_cli_accepts_sarif_output_format():
-    """`gitexpose scan --help` lists sarif as an output choice."""
+    """`credence scan --help` lists sarif as an output choice."""
     from click.testing import CliRunner
 
-    from gitexpose.cli import scan
+    from credence.cli import scan
 
     runner = CliRunner()
     result = runner.invoke(scan, ["--help"])

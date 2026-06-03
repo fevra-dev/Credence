@@ -11,7 +11,7 @@ import httpx
 import respx
 from click.testing import CliRunner
 
-from gitexpose.cli_advanced import cli
+from credence.cli_advanced import cli
 
 FIX = Path(__file__).parent / "fixtures" / "synthetic_repo_v05"
 QUERYBATCH = "https://api.osv.dev/v1/querybatch"

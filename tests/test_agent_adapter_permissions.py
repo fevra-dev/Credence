@@ -1,6 +1,6 @@
 """Tests for the Claude-Code permission-list adapter."""
 
-from gitexpose.agent_exposure.adapters.permissions import parse_permissions
+from credence.agent_exposure.adapters.permissions import parse_permissions
 
 
 def test_allow_entries_become_grants():

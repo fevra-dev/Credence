@@ -4,8 +4,8 @@ import httpx
 import pytest
 import respx
 
-from gitexpose.supply_chain import Dependency
-from gitexpose.supply_chain.osv import query_osv
+from credence.supply_chain import Dependency
+from credence.supply_chain.osv import query_osv
 
 QUERYBATCH = "https://api.osv.dev/v1/querybatch"
 VULN = "https://api.osv.dev/v1/vulns/GHSA-xxxx"

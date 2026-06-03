@@ -4,7 +4,7 @@ import re
 
 import pytest
 
-from gitexpose.data.loader import (
+from credence.data.loader import (
     CredentialPattern,
     PatternLoadError,
     load_credential_patterns,

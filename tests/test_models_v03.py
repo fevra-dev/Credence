@@ -2,8 +2,8 @@
 
 import asyncio
 
-from gitexpose.models import Category, ScanResult, Severity
-from gitexpose.secrets.secret_extractor import SecretExtractor
+from credence.models import Category, ScanResult, Severity
+from credence.secrets.secret_extractor import SecretExtractor
 
 
 def test_scan_result_verification_status_can_be_set():

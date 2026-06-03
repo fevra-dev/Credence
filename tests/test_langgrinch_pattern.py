@@ -2,7 +2,7 @@
 
 import asyncio
 
-from gitexpose.secrets.secret_extractor import SecretExtractor
+from credence.secrets.secret_extractor import SecretExtractor
 
 
 def _extract(content: str):

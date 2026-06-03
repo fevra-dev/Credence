@@ -1,7 +1,7 @@
 """Tests for the MCP config adapter + adapter registry."""
 
-from gitexpose.agent_exposure.adapters.base import adapter_for, ADAPTERS, _register
-from gitexpose.agent_exposure.models import Grant
+from credence.agent_exposure.adapters.base import adapter_for, ADAPTERS, _register
+from credence.agent_exposure.models import Grant
 
 
 def test_register_and_lookup_by_basename():
@@ -11,7 +11,7 @@ def test_register_and_lookup_by_basename():
     del ADAPTERS["zzz-test.json"]
 
 
-from gitexpose.agent_exposure.adapters.mcp import parse_mcp  # noqa: E402
+from credence.agent_exposure.adapters.mcp import parse_mcp  # noqa: E402
 
 
 def test_mcp_shell_command_grant():
@@ -38,8 +38,8 @@ def test_mcp_command_args_captured_for_eval_detection():
     content = '{"mcpServers": {"py": {"command": "python", "args": ["-c", "import os"]}}}'
     grants = parse_mcp(content, "mcp.json")
     assert any("-c" in g.raw for g in grants)
-    from gitexpose.agent_exposure.capabilities import classify
-    from gitexpose.agent_exposure.models import CapabilityClass
+    from credence.agent_exposure.capabilities import classify
+    from credence.agent_exposure.models import CapabilityClass
     assert any(CapabilityClass.CODE_EVAL in classify(g) for g in grants)
 
 
@@ -48,7 +48,7 @@ def test_mcp_malformed_json_returns_empty():
 
 
 def test_registry_has_both_families():
-    import gitexpose.agent_exposure.adapters  # noqa: F401
-    from gitexpose.agent_exposure.adapters.base import ADAPTERS
+    import credence.agent_exposure.adapters  # noqa: F401
+    from credence.agent_exposure.adapters.base import ADAPTERS
     assert "mcp.json" in ADAPTERS
     assert "settings.json" in ADAPTERS

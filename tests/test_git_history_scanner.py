@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from gitexpose.git_history.scanner import scan_history
+from credence.git_history.scanner import scan_history
 
 
 def _run(cmd, cwd):

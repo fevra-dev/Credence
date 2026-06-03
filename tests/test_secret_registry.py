@@ -3,10 +3,10 @@ import json
 import json as _json
 from pathlib import Path
 
-from gitexpose.advanced.secret_registry import (
+from credence.advanced.secret_registry import (
     SecretRegistry, frequency_band, KNOWN_EXAMPLE_KEYS, enrich,
 )
-from gitexpose.agent_exposure.sarif import to_sarif
+from credence.agent_exposure.sarif import to_sarif
 
 
 def test_frequency_bands():
@@ -119,7 +119,7 @@ def test_sarif_emits_partial_fingerprint():
 
 
 def test_supply_chain_scan_tracks_when_enabled(tmp_path):
-    from gitexpose.advanced.local_fs_scanner import LocalFilesystemScanner
+    from credence.advanced.local_fs_scanner import LocalFilesystemScanner
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "config.py").write_text('github_token = "ghp_' + "a" * 36 + '"\n')

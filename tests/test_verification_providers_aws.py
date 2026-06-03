@@ -4,8 +4,8 @@ import pytest
 import respx
 import httpx
 
-from gitexpose.verification.providers import VERIFIERS
-from gitexpose.verification.result import VerificationStatus
+from credence.verification.providers import VERIFIERS
+from credence.verification.result import VerificationStatus
 
 
 VALID_PAIR = "AKIA" + "A" * 16 + ":" + "x" * 40

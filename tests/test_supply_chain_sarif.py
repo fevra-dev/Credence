@@ -3,7 +3,7 @@ import json
 
 from click.testing import CliRunner
 
-from gitexpose.cli_advanced import cli
+from credence.cli_advanced import cli
 
 
 def test_supply_chain_sarif_output(tmp_path):

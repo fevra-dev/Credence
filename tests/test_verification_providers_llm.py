@@ -4,8 +4,8 @@ import pytest
 import respx
 import httpx
 
-from gitexpose.verification.providers import VERIFIERS
-from gitexpose.verification.result import VerificationStatus
+from credence.verification.providers import VERIFIERS
+from credence.verification.result import VerificationStatus
 
 # Each tuple: (pattern_name, expected_host, expected_header)
 LLM_PROVIDERS = [
