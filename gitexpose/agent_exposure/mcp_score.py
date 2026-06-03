@@ -30,10 +30,31 @@ _SECRET_VALUE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Actual secret-VALUE prefixes only (no key-NAME heuristics). Used to decide whether
+# the inner text of a placeholder is itself a live token — a credential-NAMED key like
+# OPENAI_API_KEY is a legit placeholder name, but `sk_live_realmaterial` is not.
+_SECRET_LITERAL_RE = re.compile(
+    r"(sk_live_|sk-|ghp_|github_pat_|ghs_|gho_|ghu_|ghr_|glpat-|gldt-|hf_|AKIA|xox[baprs]-)",
+    re.IGNORECASE,
+)
+
 # Env values that are references/placeholders, not embedded secrets.
 _PLACEHOLDER_RE = re.compile(
     r"^\s*(\$\{[^}]+\}|\$[A-Za-z_][A-Za-z0-9_]*|\{\{[^}]+\}\}|<[^>]+>)\s*$"
 )
+
+
+def _is_placeholder(value: str) -> bool:
+    """A value is a benign placeholder only if it matches a reference template AND
+    its inner content is not an actual secret literal. This keeps `${OPENAI_API_KEY}`
+    and `<API_KEY>` benign (credential-NAMED references) while preventing a real
+    credential wrapped as `<sk_live_...>` / `{{ghp_...}}` from being silently
+    suppressed (the wrapper chars are not runtime-expanded — the literal token is live)."""
+    if not _PLACEHOLDER_RE.match(value):
+        return False
+    # Strip the wrapper (${...}, $VAR, {{...}}, <...>) and check for a real token prefix.
+    inner = value.strip().strip("${}<>").strip()
+    return not _SECRET_LITERAL_RE.search(inner)
 
 
 def _host(url: str) -> str:
@@ -73,7 +94,7 @@ def score_server(server: Dict, source: str) -> List[Dict]:
     # Static credential in env (-30, HIGH)
     has_static_cred = any(
         (_SECRET_VALUE_RE.search(str(k)) or _SECRET_VALUE_RE.search(str(v)))
-        and not _PLACEHOLDER_RE.match(str(v))
+        and not _is_placeholder(str(v))
         for k, v in env.items()
     ) and auth != "oauth"
     if has_static_cred:

@@ -8,21 +8,54 @@ loosest gate (--fail-on info), never the default HIGH gate.
 """
 from __future__ import annotations
 
+import logging
 from typing import Dict, List
 
 import click
+
+logger = logging.getLogger(__name__)
 
 SEVERITY_ORDER = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "INFO": 0}
 
 FAIL_ON_CHOICES = ["info", "low", "medium", "high", "critical"]
 
 
+def _rank(severity) -> int:
+    """Rank a finding's severity, fail-CLOSED on anything unexpected.
+
+    Absent/None/empty severity → INFO (rank 0): a finding that genuinely carries
+    no severity is informational. But a PRESENT-but-unrecognized severity string
+    (e.g. "Critical " with a stray space, "crit", "CRITICAL\\n") must NOT silently
+    drop to rank 0 and escape the gate — that would let a real critical finding
+    greenlight CI. We normalize (strip + upper) first; if it's still unknown we
+    treat it as CRITICAL and warn, so the gate fails closed rather than open.
+    """
+    if severity is None:
+        return 0
+    norm = str(severity).strip().upper()
+    if norm == "":
+        return 0
+    rank = SEVERITY_ORDER.get(norm)
+    if rank is None:
+        logger.warning(
+            "cli_gating: unrecognized severity %r — treating as CRITICAL "
+            "(fail-closed) so it cannot silently escape the --fail-on gate.",
+            severity,
+        )
+        return SEVERITY_ORDER["CRITICAL"]
+    return rank
+
+
 def exit_code_for(findings: List[Dict], fail_on: str) -> int:
     """Return 1 if any finding's severity >= the fail_on threshold, else 0."""
-    floor = SEVERITY_ORDER[fail_on.upper()]
+    floor = SEVERITY_ORDER.get(fail_on.strip().upper()) if fail_on else None
+    if floor is None:
+        raise ValueError(
+            f"unknown --fail-on threshold {fail_on!r}; "
+            f"expected one of {FAIL_ON_CHOICES}"
+        )
     for f in findings:
-        rank = SEVERITY_ORDER.get((f.get("severity") or "INFO").upper(), 0)
-        if rank >= floor:
+        if _rank(f.get("severity")) >= floor:
             return 1
     return 0
 

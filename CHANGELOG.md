@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.8.1 — 2026-06-03 — Detection-evasion hardening (security audit fixes)
+
+Post-v0.8.0 adversarial audit (`/attack` over the 5 new detection modules) found and fixed six
+HIGH-severity detection-evasion gaps. Each was reproduced against live code and shipped with a
+regression test. No false-positive regressions; the CVE-2025-41390 no-subprocess invariant is unchanged.
+
+### Fixed
+- **MCP: real credential wrapped as `<sk_live_…>` / `{{ghp_…}}` was silently suppressed.** The v0.8.0
+  env-var-passthrough FP fix over-matched: angle/curly-wrapped literal secrets matched the placeholder
+  regex and `mcp_static_credential` never fired. Placeholder suppression now applies only when the inner
+  text is not an actual token literal — `${OPENAI_API_KEY}` / `<API_KEY>` stay benign, `<sk_live_…>` fires.
+- **`--fail-on` gate failed OPEN on off-spec severities.** A present-but-non-canonical severity
+  (`"Critical "`, `"crit"`, `"CRITICAL\n"`) mapped to rank 0 and escaped the default `high` gate. Severities
+  are now normalized (strip+upper); an unrecognized non-empty severity fails CLOSED (treated as CRITICAL +
+  warning). Absent/empty severity still ranks INFO. `exit_code_for` now raises `ValueError` (not `KeyError`)
+  on an unknown threshold.
+- **git-config: `[url] insteadOf` / `pushInsteadOf` / `pushurl` credential rewrites were not scanned.**
+  A token in a `[url "https://TOKEN@host/"]` rewrite (which git substitutes into every fetch/push) was
+  invisible. The scanner now inspects section headers and all URL-bearing options.
+- **git-config: GitHub `gho_`/`ghu_`/`ghr_`, GitLab `gldt-`, Bitbucket `ATBB`, and colon-less
+  `https://TOKEN@host` tokens were missed.** Prefix set extended; a colon-less token-as-username branch
+  flags LOW for manual review.
+- **git-config: `extraHeader` only matched `Basic`.** `Bearer <token>` / `token <token>` PATs are now detected.
+- **Orphan registry written world-readable (0644).** `~/.gitexpose/registry.json` (secret hashes + source
+  file paths) is now created 0600 in a 0700 dir, umask-proof.
+
 ## v0.8.0 — 2026-06-02 — AI-Infra Layer, Deepened
 
 GitExpose v0.8 deepens the on-disk AI-infrastructure surface and is designed to **run alongside**

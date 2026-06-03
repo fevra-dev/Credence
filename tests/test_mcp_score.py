@@ -108,3 +108,30 @@ def test_analyze_configs_emits_mcp_posture(tmp_path):
     assert "mcp_server_posture" in types
     assert "mcp_static_credential" in types
     assert "mcp_plaintext_http" in types
+
+
+# --- v0.8.1 audit regression (F-001) ---
+
+def test_real_credential_wrapped_in_angle_brackets_still_fires():
+    # F-001: <sk_live_...> matched the placeholder regex and was suppressed, hiding a
+    # live secret (angle brackets are not runtime-expanded). Must now fire.
+    server = {"name": "x", "url": "https://mcp.example.com", "version": "1.0.0",
+              "env": {"API_KEY": "<sk_live_51RealKeyMaterialABCDEF>"}}
+    findings = score_server(server, "mcp.json")
+    assert any(f["type"] == "mcp_static_credential" for f in findings)
+
+
+def test_real_credential_in_curly_placeholder_still_fires():
+    server = {"name": "x", "url": "https://mcp.example.com", "version": "1.0.0",
+              "env": {"API_KEY": "{{ghp_RealTokenMaterial1234567890}}"}}
+    findings = score_server(server, "mcp.json")
+    assert any(f["type"] == "mcp_static_credential" for f in findings)
+
+
+def test_named_placeholder_without_secret_is_still_suppressed():
+    # Must NOT regress the original FP fix: <API_KEY> / ${OPENAI_API_KEY} stay benign.
+    for val in ("<API_KEY>", "${OPENAI_API_KEY}", "$OPENAI_API_KEY", "{{ENV_VAR}}"):
+        server = {"name": "x", "url": "https://mcp.example.com", "version": "1.0.0",
+                  "env": {"OPENAI_API_KEY": val}}
+        findings = score_server(server, "mcp.json")
+        assert not any(f["type"] == "mcp_static_credential" for f in findings), val

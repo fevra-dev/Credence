@@ -29,10 +29,18 @@ from typing import Dict, List, Optional
 _OWASP = "LLM06"
 _ATLAS = "AML.T0012"
 
-# Provider token prefixes with high discriminability (low FP).
-_PREFIX_RE = re.compile(r"(ghp_|github_pat_|ghs_|glpat-|hf_)[A-Za-z0-9_\-]{8,}")
+# Provider token prefixes with high discriminability (low FP). Covers GitHub PAT
+# (ghp_), fine-grained PAT (github_pat_), server-to-server (ghs_), OAuth (gho_),
+# user-to-server (ghu_), refresh (ghr_); GitLab PAT (glpat-) and deploy (gldt-);
+# Bitbucket (ATBB); Hugging Face (hf_).
+_PREFIX_RE = re.compile(
+    r"(ghp_|github_pat_|ghs_|gho_|ghu_|ghr_|glpat-|gldt-|ATBB|hf_)[A-Za-z0-9_\-]{8,}"
+)
 # user:password@host — credential-bearing URL with no recognised prefix.
 _USERPASS_RE = re.compile(r"https?://[^/\s:@]+:[^/\s@]+@[^/\s]+")
+# Colon-less userinfo: a long token used AS the username (https://TOKEN@host) — a
+# valid git form that escapes both prefix and user:pass matching. Lower confidence.
+_USERINFO_RE = re.compile(r"https?://[^/\s:@]{20,}@[^/\s]+")
 
 
 def _mask(token: str) -> str:
@@ -67,6 +75,14 @@ def _classify_url(url: str) -> Optional[Dict]:
             "_token": m.group(0).split("@")[0].split("//")[-1],
             "_generic": True,
         }
+    # Colon-less token-as-username (https://TOKEN@host) — flag LOW for manual review.
+    m = _USERINFO_RE.search(url)
+    if m:
+        return {
+            "severity": "LOW",
+            "_token": m.group(0).split("@")[0].split("//")[-1],
+            "_generic": True,
+        }
     return None
 
 
@@ -85,37 +101,55 @@ def _finding(ftype: str, severity: str, source: str, description: str,
     return f
 
 
+# Option keys whose VALUE can carry a credential-bearing URL. Beyond `url`, git
+# rewrites via `insteadof`/`pushinsteadof` and pushes via `pushurl` — all of which
+# git actively substitutes, so a token in any of them is live.
+_URL_OPTION_KEYS = ("url", "pushurl", "insteadof", "pushinsteadof")
+
+
+def _emit_url_finding(cls: Dict, section: str, source: str, where: str,
+                      *, submodule: bool) -> Dict:
+    masked = _mask(cls["_token"])
+    if submodule:
+        # severity from _classify_url: CRITICAL for prefix tokens, LOW for generic
+        return _finding(
+            "gitmodules_credential_url", cls["severity"], source,
+            f"Submodule {section} embeds a credential-bearing URL ({masked}@...).",
+            committed=True,
+        )
+    if cls["_generic"]:
+        return _finding(
+            "git_config_generic_token_url", "LOW", source,
+            f"{where} in {section} contains user:password credentials "
+            f"({masked}@...). Generic form — verify manually.",
+        )
+    return _finding(
+        "git_config_credential_url", "CRITICAL", source,
+        f"{where} in {section} embeds an access token ({masked}). "
+        "Token persists in git metadata across clone/package operations.",
+    )
+
+
 def _scan_remote_like(parser, source: str, *, submodule: bool) -> List[Dict]:
     out: List[Dict] = []
     for section in parser.sections():
         if section == configparser.DEFAULTSECT:
             continue
-        if not parser.has_option(section, "url"):
-            continue
-        url = parser.get(section, "url")
-        cls = _classify_url(url)
-        if cls is None:
-            continue
-        masked = _mask(cls["_token"])
-        if submodule:
-            # severity from _classify_url: CRITICAL for prefix tokens, LOW for generic
-            out.append(_finding(
-                "gitmodules_credential_url", cls["severity"], source,
-                f"Submodule {section} embeds a credential-bearing URL ({masked}@...).",
-                committed=True,
-            ))
-        elif cls["_generic"]:
-            out.append(_finding(
-                "git_config_generic_token_url", "LOW", source,
-                f"Remote {section} URL contains user:password credentials "
-                f"({masked}@...). Generic form — verify manually.",
-            ))
-        else:
-            out.append(_finding(
-                "git_config_credential_url", "CRITICAL", source,
-                f"Remote {section} URL embeds an access token ({masked}). "
-                "Token persists in git metadata across clone/package operations.",
-            ))
+        # The section HEADER itself can carry a token: [url "https://TOKEN@host/"].
+        header_cls = _classify_url(section)
+        if header_cls is not None:
+            out.append(_emit_url_finding(header_cls, section, source,
+                                         "Rewrite-rule URL", submodule=submodule))
+        # Any URL-bearing option value (url / pushurl / insteadOf / pushInsteadOf).
+        for key in _URL_OPTION_KEYS:
+            if not parser.has_option(section, key):
+                continue
+            cls = _classify_url(parser.get(section, key))
+            if cls is None:
+                continue
+            label = "URL" if key == "url" else f"{key} value"
+            out.append(_emit_url_finding(cls, section, source, label,
+                                         submodule=submodule))
     return out
 
 
@@ -127,20 +161,31 @@ def _scan_extraheader(parser, source: str) -> List[Dict]:
         if not parser.has_option(section, "extraheader"):
             continue
         value = parser.get(section, "extraheader")
+        # Basic <base64(:PAT)> — decode then take the secret after the colon.
         m = re.search(r"Basic\s+([A-Za-z0-9+/=]+)", value, re.IGNORECASE)
-        if not m:
-            continue
-        try:
-            decoded = base64.b64decode(m.group(1), validate=True).decode("utf-8", "ignore")
-        except (binascii.Error, ValueError):
-            continue
-        secret = decoded.split(":", 1)[-1].strip()
-        if len(secret) >= 8:
-            out.append(_finding(
-                "git_config_extraheader_credential", "HIGH", source,
-                f"{section} stores a Basic-auth credential in http.extraHeader "
-                f"({_mask(secret)}). Common Azure DevOps PAT vector.",
-            ))
+        if m:
+            try:
+                decoded = base64.b64decode(m.group(1), validate=True).decode("utf-8", "ignore")
+            except (binascii.Error, ValueError):
+                decoded = ""
+            secret = decoded.split(":", 1)[-1].strip()
+            if len(secret) >= 8:
+                out.append(_finding(
+                    "git_config_extraheader_credential", "HIGH", source,
+                    f"{section} stores a Basic-auth credential in http.extraHeader "
+                    f"({_mask(secret)}). Common Azure DevOps PAT vector.",
+                ))
+                continue
+        # Bearer <token> / token <token> — the trailing value IS the credential.
+        m = re.search(r"\b(?:Bearer|token)\s+(\S+)", value, re.IGNORECASE)
+        if m:
+            secret = m.group(1).strip()
+            if len(secret) >= 8:
+                out.append(_finding(
+                    "git_config_extraheader_credential", "HIGH", source,
+                    f"{section} stores a bearer/token credential in http.extraHeader "
+                    f"({_mask(secret)}).",
+                ))
     return out
 
 

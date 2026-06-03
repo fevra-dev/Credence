@@ -129,3 +129,21 @@ def test_supply_chain_scan_tracks_when_enabled(tmp_path):
     secret = next((f for f in findings if f.get("secret_value_hash")), None)
     assert secret is not None
     assert secret["source_frequency"] == "orphan_candidate"
+
+
+# --- v0.8.1 audit regression (F-004) ---
+
+def test_registry_file_and_dir_are_not_world_readable(tmp_path):
+    # F-004: the registry holds secret hashes + source file paths; on a shared host
+    # a 0644 file leaks which files contain secrets. Must be 0600 file / 0700 dir.
+    import os
+    import stat
+    reg_dir = tmp_path / "sub"
+    reg_path = reg_dir / "registry.json"
+    reg = SecretRegistry(reg_path)
+    reg.observe("AKIAREALSECRETVALUE123", "services/auth/config.py")
+    reg.save()
+    fmode = stat.S_IMODE(os.stat(reg_path).st_mode)
+    dmode = stat.S_IMODE(os.stat(reg_dir).st_mode)
+    assert fmode & 0o077 == 0, f"registry file is group/other-accessible: {oct(fmode)}"
+    assert dmode & 0o077 == 0, f"registry dir is group/other-accessible: {oct(dmode)}"

@@ -19,6 +19,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Dict, List, Optional
 from urllib.parse import unquote
@@ -106,9 +107,27 @@ class SecretRegistry:
         return len(sources)
 
     def save(self) -> None:
+        # The registry holds secret HASHES + source file PATHS — both sensitive on a
+        # shared host. Create the dir 0700 and the file 0600, umask-proof: pass mode to
+        # mkdir AND chmod after (mkdir mode is masked by umask), and open the file with
+        # an explicit 0o600 opener so it is never momentarily world-readable.
         try:
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            self.path.write_text(json.dumps(self._data, indent=0))
+            parent = self.path.parent
+            parent.mkdir(parents=True, exist_ok=True)
+            try:
+                os.chmod(parent, 0o700)
+            except OSError:
+                pass  # best-effort (e.g. parent not owned by us); file mode still 0600
+            fd = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            try:
+                os.write(fd, json.dumps(self._data, indent=0).encode("utf-8"))
+            finally:
+                os.close(fd)
+            # If the file pre-existed with looser perms, O_CREAT won't tighten it.
+            try:
+                os.chmod(self.path, 0o600)
+            except OSError:
+                pass
         except OSError as exc:
             logger.warning("secret_registry: could not save %s: %s", self.path, exc)
 

@@ -120,3 +120,60 @@ def test_default_section_url_does_not_duplicate(tmp_path):
     out = scan(tmp_path)
     # At most one credential finding — no per-section inheritance explosion.
     assert len([f for f in out if "credential_url" in f["type"]]) <= 1
+
+
+# --- v0.8.1 audit regressions (F-003 / F-005 / F-007) ---
+
+def test_insteadof_rewrite_token_is_detected(tmp_path):
+    # F-003: [url "...TOKEN@host/"] insteadOf — git substitutes this prefix; the
+    # token is live even though the visible remote URL is clean.
+    _write_git_config(tmp_path, (
+        '[url "https://ghp_AbCdEf0123456789AbCdEf0123456789AbCd@github.com/"]\n'
+        '\tinsteadOf = https://github.com/\n'
+        '[remote "origin"]\n\turl = https://github.com/x/y\n'
+    ))
+    out = scan(tmp_path)
+    assert any(f["type"] == "git_config_credential_url" for f in out)
+
+
+def test_pushurl_token_is_detected(tmp_path):
+    _write_git_config(tmp_path, (
+        '[remote "origin"]\n'
+        '\turl = https://github.com/x/y\n'
+        '\tpushurl = https://ghp_AbCdEf0123456789AbCdEf0123456789AbCd@github.com/x/y\n'
+    ))
+    out = scan(tmp_path)
+    assert any(f["type"] == "git_config_credential_url" for f in out)
+
+
+def test_github_oauth_prefix_tokens_detected(tmp_path):
+    # F-005: gho_/ghu_/ghr_ + GitLab gldt- were outside the prefix set.
+    for prefix in ("gho_", "ghu_", "ghr_", "gldt-"):
+        (tmp_path / ".git").mkdir(parents=True, exist_ok=True)
+        (tmp_path / ".git" / "config").write_text(
+            f'[remote "origin"]\n\turl = https://{prefix}RealTokenABCDEFGHIJKL@github.com/x/y\n'
+        )
+        out = scan(tmp_path)
+        assert any(f["type"] == "git_config_credential_url" for f in out), prefix
+
+
+def test_colonless_token_as_username_is_flagged(tmp_path):
+    # F-005: https://TOKEN@host (no colon) escaped both prefix and user:pass matching.
+    _write_git_config(tmp_path, (
+        '[remote "origin"]\n'
+        '\turl = https://aVeryLongOpaqueTokenValue1234567890@gitea.example.com/x/y\n'
+    ))
+    out = scan(tmp_path)
+    assert any(f["severity"] in ("LOW", "INFO") for f in out)
+
+
+def test_extraheader_bearer_and_token_schemes_detected(tmp_path):
+    # F-007: only Basic was matched; Bearer/token PATs were missed.
+    for scheme in ("Bearer", "token"):
+        (tmp_path / ".git").mkdir(parents=True, exist_ok=True)
+        (tmp_path / ".git" / "config").write_text(
+            f'[http "https://github.com/"]\n'
+            f'\textraHeader = AUTHORIZATION: {scheme} ghp_RealTokenABCDEFGHIJKLMNOPQRST\n'
+        )
+        out = scan(tmp_path)
+        assert any(f["type"] == "git_config_extraheader_credential" for f in out), scheme
