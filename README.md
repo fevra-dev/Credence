@@ -1,408 +1,210 @@
-# Credence
-
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-0.8.1-blue.svg)
-![Python](https://img.shields.io/badge/python-3.9+-green.svg)
-![License](https://img.shields.io/badge/license-MIT-orange.svg)
+# Credence
 
 **Exposure intelligence for the AI-infrastructure layer**
 
-*Finds and weighs leaked credentials, MCP and agent configs, git-metadata secrets, and supply-chain risk — and tells you which exposures to trust. The artifacts general scanners treat as plain text; built to run **alongside** them, not replace them.*
+*Finds and weighs leaked credentials, MCP and agent configs, git-metadata secrets, and supply-chain risk — and tells you which exposures to trust.*
+
+[![Version](https://img.shields.io/badge/version-0.8.1-blue.svg)](https://github.com/fevra-dev/Credence/releases)
+[![Python](https://img.shields.io/badge/python-3.9--3.12-green.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
+[![SARIF](https://img.shields.io/badge/output-SARIF%202.1.0-8a2be2.svg)](docs/INTEGRATIONS_CODE_SCANNING.md)
+[![Compliance](https://img.shields.io/badge/tagged-OWASP%20LLM%20%C2%B7%20MITRE%20ATLAS%20%C2%B7%20ATT%26CK-red.svg)](docs/MITRE_ATLAS_COVERAGE.md)
+
+[Why](#why-credence) · [Install](#installation) · [Quick start](#quick-start) · [Coverage](#detection-coverage) · [CI/CD](#cicd-integration) · [Docs](#documentation)
 
 <sub>Formerly **GitExpose** — renamed to Credence at v0.8.1. `pip install credence-scan`; the CLI is `credence` (the old `gitexpose` command still works as a deprecated alias for one release).</sub>
-
-[Features](#features) • [Installation](#installation) • [Quick Start](#quick-start) • [Coverage](docs/COVERAGE.md) • [Documentation](#documentation)
 
 </div>
 
 ---
 
-## Overview
+## Why Credence
 
-Credence finds exposed credentials, sensitive AI-infrastructure configs, and supply-chain compromise indicators across web targets and local repositories.
+General secret scanners treat the AI stack as plain text. Credence reads it: **MCP server configs, agent skill files, `.claude/settings.json`, LiteLLM proxies, model/dataset pipelines, and git-metadata credentials** — the leak surfaces that emerged with the 2025–2026 AI-tooling explosion. Then it does what a scanner usually doesn't: it **weighs** each exposure — verifying whether a credential is *live*, scoring MCP posture, and flagging which secrets are rare private leaks versus scraped public noise.
 
-| Threat Category | What's Detected |
-|-----------------|-----------------|
-| **Credential exposure** | 29-provider matrix: OpenAI, Anthropic, Google, Groq, xAI, Hugging Face, Replicate, Perplexity, Pinecone, LangSmith, Stripe, GitHub, GitLab, Docker Hub, Discord, Slack, Telegram, Twilio, SendGrid, AWS, ElevenLabs, Helicone, Portkey, Voyage, Cohere, Modal, Runpod, plus DB connection strings |
-| **Active verification** (v0.3) | Opt-in `--verify` confirms whether a detected credential is **live** by sending a side-effect-free auth check to the provider — covers 16 providers (LLM tier + GitHub/GitLab/Docker Hub/Slack/AWS) |
-| **Git history scanning** (v0.4) | `git-history` scans all reachable commits for credentials committed and later removed — still in history, often still live. Each secret reported once at its earliest-introducing commit with SHA/author/date. Composes with `--verify`. |
-| **Exposed AI-tool configs** | `.continue/`, `claude/.credentials.json`, MCP configs, LiteLLM proxy configs, CrewAI/AutoGen YAMLs, .NET appsettings build output |
-| **Supply-chain risk** | Unpinned AI middleware, known-malicious package versions (TeamPCP), slopsquatting, `.pth` persistence, AI agent C2 beacons, k8s exfiltration, polyglot files, prompt injection in agent instruction files, malicious agent config payloads |
-| **Live dependency SCA** (v0.5) | Lock-file parsing (Python `requirements`/`poetry.lock`/`Pipfile.lock`, JS `package-lock.json`/`yarn.lock`) + OSV.dev live CVE/GHSA lookups → `vulnerable_dependency` findings, ranked by **exploitability context** (direct/unpinned/fix-available/credential-co-presence), not raw CVSS. Default on; `--offline` for air-gapped use. |
-| **AI-BOM** (v0.5) | CycloneDX 1.6 security BOM (`-o cyclonedx`) with components, dependency-vulnerability VEX (honestly scoped — `exploitable` only when proven), and NTIA minimum elements. |
-| **AI agent exposure** (v0.6–v0.7) | `agent-audit` flags over-permissioned AI agents — MCP servers wired to shell/exec, `.claude` permission grants like `Bash(*)`/`WebFetch`, **function-calling tool schemas** (OpenAI/Anthropic `tools[]`, v0.7), and exfil-capable capability chains (OWASP LLM08 / ATLAS AML.T0053 / ATT&CK T1059…) — and detects committed system prompts matching CL4R1T4S known-leak fingerprints (OWASP LLM07 / AML.T0056). Console/JSON/**SARIF** output (v0.7 SARIF → GitHub Code Scanning). |
-| **AI-infra layer, deepened** (v0.8) | **Git-metadata credentials** — tokens in `.git/config`/`.gitmodules` remote URLs + Azure DevOps `extraHeader` PATs (structural, CVE-2025-41390-safe, never invokes git). **Agent debug-print** leaks (`print(api_key)` in skills, AST-based). **MCP posture score** (0-100) with decoupled per-issue findings + INFO summary. **Orphan cross-source signal** (`--track`): hash-only registry tags secrets `orphan_candidate`…`replicated`, emits SARIF `partialFingerprints` for dedup alongside TruffleHog. New `--fail-on` severity gate + `supply-chain -o sarif`. |
-| **Compliance metadata** | OWASP LLM Top 10 + MITRE ATLAS + MITRE ATT&CK technique on every finding |
-| **HTTP target scanning** | `.git`, `.env`, source maps, framework misconfigs, exposed configs |
+| | Most secret scanners | **Credence** |
+|---|---|---|
+| **Finds credentials in code/history** | ✅ | ✅ |
+| **Confirms a key is *live*** (opt-in verification) | sometimes | ✅ 16 providers |
+| **AI-infra surfaces** (MCP, agent skills, model cards) | text-only | ✅ structural |
+| **Git-metadata creds** (`.git/config`, `.gitmodules`, `extraHeader`) | ✗ | ✅ |
+| **Excessive-agency / MCP posture scoring** | ✗ | ✅ 0–100 |
+| **Orphan-signal triage** (rare leak vs public noise) | ✗ | ✅ |
+| **Compliance tagging** (OWASP LLM · ATLAS · ATT&CK) | ✗ | ✅ every finding |
+| **SARIF 2.1.0 + cross-tool dedup fingerprints** | partial | ✅ |
 
-See [docs/COVERAGE.md](docs/COVERAGE.md) for the full matrix.
+Built to run **alongside** general scanners in CI, not replace them.
 
 ---
 
 ## Why this matters
 
-In May 2026, KrebsOnSecurity and GitGuardian reported on a public GitHub
-repository named `Private-CISA`. The repo, created by a CISA contractor in
-November 2025, contained 844 MB of operational material: CI/CD logs,
-Kubernetes manifests, Terraform code, GitHub workflows, internal docs, AWS
-GovCloud admin credentials, and plaintext passwords for internal systems.
+In May 2026, KrebsOnSecurity and GitGuardian reported on a public GitHub repository named `Private-CISA` — created by a contractor in November 2025, it held 844 MB of operational material: CI/CD logs, Kubernetes manifests, Terraform, internal docs, AWS GovCloud admin credentials, and plaintext passwords for internal systems.
 
-This is the threat model Credence is built for. GitHub is the production
-perimeter, and one careless commit can publish keys, infrastructure maps, and
-operational secrets to attackers who never needed a zero-day.
-
-Credence v0.3 adds **active credential verification** — instead of just
-flagging that a string looks like an OpenAI key or an AWS access key, it
-confirms whether that credential is live by sending a low-footprint
-authentication check to the provider. Live keys get flagged as `verified-live`
-in SARIF output and surface as the highest-confidence alerts in GitHub Code
-Scanning.
-
-References:
-- [KrebsOnSecurity: CISA contractor leak](https://krebsonsecurity.com/) (May 2026)
-- [GitGuardian incident analysis](https://blog.gitguardian.com/)
+That is the threat model. GitHub is the production perimeter, and one careless commit can publish keys, infrastructure maps, and operational secrets to attackers who never needed a zero-day. Credence is built to catch those exposures **and tell you which ones are actually live and reachable** — instead of drowning a responder in unranked "looks-like-a-key" noise.
 
 ---
 
-## Features
+## Capabilities
 
-### Core Scanning
-- **Async HTTP** with configurable concurrency (50-100+ requests)
-- **Signature validation** to reduce false positives
-- **Multiple outputs**: console, JSON, CSV, HTML, **SARIF 2.1.0**
-- **OWASP LLM + MITRE ATLAS metadata** on every finding
+| Capability | What it does | Since |
+|---|---|---|
+| **Credential detection** | 29-pattern matrix across 23+ providers (OpenAI, Anthropic, AWS, GitHub, Stripe, Hugging Face, Slack, DB strings, …) with context-bound patterns and paired-secret cluster detection | v0.1+ |
+| **Active verification** (`--verify`) | Confirms a key is **live** via a side-effect-free auth check — covers 16 providers (LLM tier + GitHub/GitLab/Docker Hub/Slack/AWS SigV4) | v0.3 |
+| **Git-history scanning** | Scans all reachable commits for committed-then-removed secrets; reports each at its earliest-introducing commit (SHA/author/date); composes with `--verify` | v0.4 |
+| **Live dependency SCA** | Lock-file parsing + OSV.dev CVE/GHSA lookups, ranked by **exploitability context** (direct/unpinned/fix-available/credential co-presence), not raw CVSS | v0.5 |
+| **AI-BOM** | CycloneDX 1.6 security BOM with dependency VEX (honestly scoped) and NTIA minimum elements | v0.5 |
+| **AI agent exposure** (`agent-audit`) | Flags over-permissioned agents — MCP shell/exec wiring, `.claude` grants like `Bash(*)`, function-calling tool schemas, exfil-capable capability chains; detects leaked system prompts | v0.6–v0.7 |
+| **AI-infra layer, deepened** | Git-metadata credentials · agent debug-print leaks (AST) · MCP posture score (0–100) · orphan cross-source signal · `--fail-on` severity gate | v0.8 |
+| **Compliance metadata** | OWASP LLM Top 10 + MITRE ATLAS + MITRE ATT&CK technique on **every** finding | v0.2+ |
+| **Outputs** | console · JSON · CSV · HTML · **SARIF 2.1.0** (GitHub Code Scanning) · CycloneDX | — |
 
-### Credential Detection (`credence ...`)
-- 23-provider regex matrix with context-bound patterns where needed
-- Paired-secret cluster detection: when ≥2 distinct secret types appear in the same file, Credence emits a single CRITICAL `credential_cluster` finding
-- Multi-provider-key file flagging: known aggregator paths (`OAI_CONFIG_LIST`, `litellm_config.yaml`, `.continue/agents/*.yaml`) get a CRITICAL multi-provider finding when ≥2 secret types are present
-
-### Local Supply-Chain Scanning (`credence supply-chain <path>`)
-- Unpinned AI middleware (`litellm`, `langchain`, `openai`, etc.) flagged HIGH
-- Known-malicious package versions corpus (TeamPCP/LiteLLM, Telnyx, Xinference, etc.)
-- Slopsquatting detection — known LLM-hallucinated package names (USENIX 2025 research basis)
-- `.pth` persistence pattern (TeamPCP-class post-compromise indicator)
-- AI-agent C2 beacon detection (MITRE ATLAS AML.TA0015)
-- Kubernetes secret-exfiltration patterns
-- **Polyglot file detection** — text-extension files (`.md`, `.yaml`, `.json`, etc.) whose leading bytes are a binary/executable/archive signature (ELF, PE/MZ, ZIP, PDF, Mach-O, gzip). Built-in magic-byte detection — no external dependency.
-- **Prompt injection in agent instruction files** — hidden directives in `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.continue/`, `.cursor/` (OWASP LLM01)
-- **Malicious agent config payloads** — embedded `curl|bash`, `exec`/`eval` in CrewAI/AutoGen/litellm configs (CRITICAL)
-- **LangChain `lc-` key heuristic** — best-effort detection of LangChain-format credentials, motivated by CVE-2025-68664 (LangGrinch); treat as a high-signal lead requiring confirmation
-
-### Git History Scanning (`credence git-history <path>`, v0.4)
-- Scans **all reachable git history** (`git log -p --all --reverse`) for credentials committed and later removed
-- Full 29-provider credential matrix applied to every diff hunk
-- Each secret deduplicated and reported once at its **earliest-introducing commit** with SHA, author, and date
-- **Composes with `--verify`**: historical secrets are liveness-checked — "deleted 47 commits ago, confirmed live"
-- AWS access+secret pairing applies here too, enabling AWS liveness verification on historical findings
-- Flags: `-o/--output {console,json}`, `--out-file`, `--since`, `--max-commits`, plus the full `--verify*` family
-
-### Active Verification (`--verify`, v0.3+)
-- Opt-in liveness check: turns a "looks like a key" finding into a **confirmed live / dead** verdict by sending a low-footprint, side-effect-free auth request to the provider
-- Covers 16 providers: OpenAI, Anthropic, Groq, OpenRouter, xAI, Cerebras, Hugging Face, ElevenLabs, Pinecone, LangSmith, GitHub, GitLab, Docker Hub, Slack, and AWS (SigV4 `GetCallerIdentity`)
-- **AWS pairing (v0.4)**: when both `aws_access_key` and `aws_secret_key` are found in the same source, they are paired automatically so the STS liveness check succeeds. Previously AWS always returned `error`. Applies to both `supply-chain` and `git-history`.
-- Conservative by default: a consent banner names every destination host, concurrency is capped, and no raw secret is ever logged (canary-tested). Results surface as `verified` / `dead` / `error` and as `verified-live` SARIF tags for GitHub Code Scanning
-- Status surfaced across JSON, SARIF, HTML, CSV, and console output
-
-### Advanced Modules (in `credence/advanced/`)
-- React2Shell detector (CVE-2025-55182)
-- ML model supply-chain scanner (pickle opcode analysis)
-- LLM/RAG infrastructure exposure scanner
-- Invisible Unicode detector (GlassWorm patterns)
-- Cloud asset scanner (S3 / Azure Blob / GCS)
-- API endpoint discovery
-- WAF detection / stealth mode
-- MCP server (Model Context Protocol)
+See **[docs/COVERAGE.md](docs/COVERAGE.md)** for the full provider + finding-type matrix.
 
 ---
 
 ## Installation
 
 ```bash
-# Clone repository
+# From a release wheel (recommended)
+pip install credence-scan            # core
+pip install "credence-scan[advanced]"   # + local supply-chain / agent-audit / MCP modules
+
+# From source
 git clone https://github.com/fevra-dev/Credence.git
-cd credence
-
-# Install with pip
-pip install -e .
-
-# Or install with advanced dependencies
+cd Credence
 pip install -e ".[advanced]"
 ```
 
-### Requirements
-- Python 3.9+
-- aiohttp, click, colorama (core)
-- rich, aiofiles, GitPython (advanced, optional)
+**Requirements:** Python 3.9–3.12. Core is stdlib + `aiohttp`/`click`/`httpx`/`PyYAML`; the `advanced` extra adds local-filesystem scanning, git-history, and the MCP server.
 
 ---
 
 ## Quick Start
 
-### Basic Scan
 ```bash
-# Single target
+# Web target — scan for exposed .git, .env, backups, configs
 credence example.com
+credence -f targets.txt -o json --out-file results.json
 
-# Multiple targets
-credence example.com api.example.com
+# Local repository — supply-chain + secrets + git-metadata, with live SCA (OSV.dev)
+credence supply-chain ./my-project
+credence supply-chain ./my-project --offline          # air-gapped: skip network
+credence supply-chain ./my-project --verify           # confirm which creds are LIVE
 
-# From file
-credence -f targets.txt
+# Audit AI-agent configs — excessive permissions, MCP posture, leaked prompts
+credence agent-audit ./my-project
+
+# Scan all git history for committed-then-removed secrets, verify which are still live
+credence git-history . --verify
 ```
 
-### Advanced Scans
+**v0.8 highlights**
+
 ```bash
-# Full security audit (all modules)
-credence scan example.com --full-audit
+# Emit SARIF with cross-tool dedup fingerprints + orphan cross-source signal
+credence supply-chain ./repo --output sarif --track --out-file credence.sarif
 
-# React2Shell vulnerability check
-credence react2shell https://nextjs-app.com
-
-# ML model supply chain scan
-credence ml-scan https://api.example.com
-
-# LLM/AI infrastructure exposure
-credence llm-scan https://ai-app.com
-
-# Invisible Unicode detection
-credence unicode-scan --file suspicious.js
-
-# Local supply-chain scan — now with live dependency SCA (OSV.dev, v0.5)
-# Parses lock files, queries OSV for live CVEs/GHSAs, ranks by exploitability.
-credence supply-chain ./my-project
-
-# Air-gapped / offline: skip OSV, use the curated known-bad list only
-credence supply-chain ./my-project --offline
-
-# Export a CycloneDX 1.6 AI-BOM (components + dependency VEX + NTIA elements)
-credence supply-chain ./my-project -o cyclonedx --out-file sbom.cdx.json
-
-# Supply-chain scan with active credential verification (opt-in)
-# Sends a side-effect-free auth check to each provider; prints a consent banner.
-credence supply-chain ./my-project --verify
-
-# Verify only the highest-severity findings, with a tighter timeout
-credence supply-chain ./my-project --verify --verify-only-severity HIGH --verify-timeout 3
-
-# Scan all git history for committed-then-removed secrets, and verify which are still live
-credence git-history . --verify
-
-# Audit AI-agent configs for excessive tool permissions + leaked system prompts (v0.6–v0.7)
-# Classifies MCP/permission grants + function-calling tool schemas against a
-# dangerous-capability taxonomy (OWASP LLM08).
-credence agent-audit ./repo
-credence agent-audit ./repo -o json --out-file agent-findings.json
-# Emit SARIF for GitHub Code Scanning (v0.7)
-credence agent-audit ./repo -o sarif --out-file agent.sarif
-
-# v0.8: emit SARIF with cross-tool dedup fingerprints (partialFingerprints) and
-# the orphan cross-source signal — run alongside TruffleHog and dedup in Code Scanning.
-credence supply-chain ./repo --output sarif --track --out-file supply.sarif
-
-# v0.8: only fail CI on HIGH/CRITICAL (the default); --fail-on info restores "any finding fails"
+# CI gate: only HIGH/CRITICAL fail the build by default; --fail-on info = "any finding fails"
 credence agent-audit ./repo --fail-on high
 
-# Web scan: a bare target is shorthand for `credence scan` (both run the web scanner)
-credence example.com -o sarif
-credence scan example.com -o sarif
-
-# Multi-module aggregate sweep (react2shell + ml + llm + unicode + source-maps + cicd + api)
-credence full-audit example.com --full-audit
+# Export a CycloneDX 1.6 AI-BOM (components + dependency VEX + NTIA elements)
+credence supply-chain ./repo -o cyclonedx --out-file sbom.cdx.json
 ```
 
-### Output Formats
-```bash
-# JSON output
-credence example.com -o json --out-file results.json
+### Example output
 
-# HTML report
-credence scan example.com --full-audit -o html --out-file report.html
+```text
+$ credence agent-audit ./repo
 
-# CSV for spreadsheets
-credence -f targets.txt -o csv --out-file results.csv
-
-# SARIF 2.1.0 (for GitHub Advanced Security, VS Code, etc.)
-credence example.com -o sarif --out-file results.sarif
-```
-
----
-
-## Advanced Capabilities
-
-### React2Shell Detection (CVE-2025-55182)
-Detects the critical pre-auth RCE vulnerability affecting React Server Components:
-```python
-from credence.advanced import React2ShellDetector
-
-detector = React2ShellDetector(deep_scan=True)
-finding = await detector.scan("https://nextjs-app.com")
-
-print(f"Status: {finding.status.value}")  # vulnerable/potentially_vulnerable
-print(f"Risk Score: {finding.risk_score}/10.0")
-```
-
-### ML Model Supply Chain
-Scans for exposed models that could execute arbitrary code:
-```python
-from credence.advanced import MLModelScanner
-
-scanner = MLModelScanner(deep_analysis=True)
-result = await scanner.scan("https://ml-api.com")
-
-for model in result.exposed_models:
-    print(f"[{model.risk_level}] {model.path}")
-```
-
-### MCP Server (AI Agent Integration)
-```bash
-# Start MCP server for Claude/GPT integration
-credence mcp
+🤖 3 agent-exposure finding(s) in ./repo:
+  [HIGH] mcp_static_credential  (mcp.json)
+     MCP server 'analytics' embeds a static credential in its env block.
+     📋 OWASP LLM08 Excessive Agency · ATLAS AML.T0053 · ATT&CK T1552
+  [HIGH] agent_skill_credential_print  (skills/loader.py)
+     Debug print/log broadcasts a credential-named variable to stdout/logs.
+     📋 OWASP LLM06 · ATLAS AML.T0019
+  [INFO] mcp_server_posture  (mcp.json)
+     MCP server 'analytics' posture score 50/100 (−30 static credential; −20 plaintext http).
 ```
 
 ---
 
 ## Detection Coverage
 
-See [docs/COVERAGE.md](docs/COVERAGE.md) for the full detection matrix.
+- **29 credential patterns across 23+ providers** spanning LLM/AI, RAG/vector DB, observability, cloud, payment, comms, and DB connection strings — with context-bound patterns where prefix matching is insufficient.
+- **Git-metadata credentials** — tokens in `.git/config` / `.gitmodules` remote URLs and `[url] insteadOf` rewrites, Azure DevOps `extraHeader` PATs (Basic/Bearer/token). Structural `configparser` parsing — **never invokes git** (CVE-2025-41390-safe).
+- **AI agent exposure** — MCP servers wired to shell/exec, `.claude` permission grants, function-calling tool schemas, exfil-capable capability chains; MCP posture scoring (0–100) with decoupled per-issue findings.
+- **Supply-chain** — unpinned AI middleware, known-malicious versions (TeamPCP), slopsquatting, `.pth` persistence, agent C2 beacons, polyglot files, prompt injection in instruction files, live OSV.dev SCA.
+- **Orphan cross-source signal** — a hash-only registry (raw values never persisted) tags each secret `orphan_candidate`…`replicated` and emits SARIF `partialFingerprints` for cross-tool dedup.
 
-| Category | Examples | Severity |
-|----------|----------|----------|
-| **Git Repositories** | .git/config, HEAD, index | Critical |
-| **Environment Files** | .env, .env.production | Critical |
-| **Configuration** | wp-config.php, settings.py | High |
-| **Backups** | backup.sql, database.dump | Critical |
-| **Source Maps** | *.js.map, webpack bundles | High |
-| **ML Models** | .pkl, .pt, .h5 | Critical |
-| **AI/LLM Configs** | Vector DBs, MCP configs, API keys | Critical |
-| **Supply Chain** | Malicious packages, unpinned deps | High–Critical |
+Every finding carries **OWASP LLM Top 10 + MITRE ATLAS + MITRE ATT&CK** metadata. Full matrix: **[docs/COVERAGE.md](docs/COVERAGE.md)** · ATLAS map: **[docs/MITRE_ATLAS_COVERAGE.md](docs/MITRE_ATLAS_COVERAGE.md)**.
 
 ---
 
-## Project Structure
+## CI/CD Integration
+
+Credence emits **SARIF 2.1.0** for GitHub Code Scanning and provides a sample workflow + pre-commit hook.
+
+```yaml
+# .github/workflows/credence-scan.yml (sample included in repo)
+- run: pip install ".[advanced]"
+- run: credence supply-chain . --offline -o sarif --out-file credence.sarif
+- uses: github/codeql-action/upload-sarif@v3
+  with: { sarif_file: credence.sarif }
+```
+
+The `--fail-on {info,low,medium,high,critical}` gate controls the exit code (default `high`), so cosmetic findings don't break the build while real ones do. Guides: **[CI/CD](docs/INTEGRATIONS_CICD.md)** · **[Code Scanning](docs/INTEGRATIONS_CODE_SCANNING.md)**.
+
+---
+
+## Architecture
 
 ```
 credence/
-├── credence/
-│   ├── __init__.py          # Main package
-│   ├── cli.py               # CLI interface
-│   ├── scanner.py           # Core scanning engine
-│   ├── models.py            # Data models
-│   ├── paths.py             # AI-tool config path detection
-│   ├── signatures.py        # Detection signatures
-│   │
-│   ├── advanced/            # Advanced security modules
-│   │   ├── react2shell_detector.py
-│   │   ├── ml_model_scanner.py
-│   │   ├── llm_exposure_scanner.py
-│   │   ├── invisible_unicode_detector.py
-│   │   ├── supply_chain_patterns.py
-│   │   ├── local_fs_scanner.py
-│   │   ├── credential_cluster.py
-│   │   ├── slopsquatting.py
-│   │   ├── known_bad_versions.py
-│   │   ├── dependency_pinning.py
-│   │   └── mcp_server.py
-│   │
-│   ├── core/                # Core detection engine
-│   ├── git/                 # Git analysis
-│   ├── secrets/             # Credential extraction
-│   └── reporters/           # Output formatters (console, JSON, CSV, HTML, SARIF)
-│
-├── docs/                    # Documentation
-├── tests/                   # Test suite (251 tests)
-└── requirements.txt
+├── scanner.py              # async HTTP web-target scanner
+├── signatures.py           # response validation (low-FP)
+├── secrets/                # 29-provider credential extraction
+├── verification/           # opt-in live-credential checks (16 providers)
+├── git_history/            # all-reachable-commit secret scanning
+├── supply_chain/           # lock-file SCA + OSV.dev + CycloneDX AI-BOM
+├── agent_exposure/         # MCP/agent excessive-agency + posture + debug-print
+├── advanced/               # git-metadata, ML-model, LLM-exposure, MCP server, orphan registry
+└── reporters/              # console · JSON · CSV · HTML · SARIF · CycloneDX
 ```
 
-> Test suite: ~287 tests as of v0.4.
-
----
-
-## Roadmap (not yet implemented)
-
-The following are designed but not yet shipping. Track via GitHub issues.
-
-- Policy engine: configurable severity overrides, allow-list patterns, org-wide suppression rules
-- Classic typosquatting (Levenshtein/Jaro-Winkler/homoglyph/keyboard) against popular-package baselines
-- Lock-file poisoning checks (SRI hash mismatch, ghost deps, off-registry resolved URLs) — v0.5 already captures the integrity hashes + URLs needed
-- Shai-Hulud install-time behavioral analysis (lifecycle hooks, credential-harvest AST, metadata-service SSRF)
-- Go (`go.sum`) and Cargo (`Cargo.lock`) ecosystems for SCA
-- Capability/scope enumeration for verified credentials (AWS IAM perms, GitHub PAT scopes, OpenAI org)
-- Active verification for Tier 3 providers (Helicone, Portkey, Voyage, Cohere, Modal, Runpod — detection-only today) and webhook/DB/JWT classes
-- `--verify` on the web-scan path (currently verification runs on `supply-chain` and `git-history` findings only)
-- ML-powered anomaly detection engine
-- Runtime monitoring proxy (Pipelock-style)
-- Plugin architecture for custom detection rules
-- Web dashboard / REST API
-- Live external threat-intelligence enrichment
-- Audio steganography detection (Telnyx-class)
-- Browser-agent misuse patterns
-
-**Shipped in v0.5:** live dependency SCA — lock-file parsing (Python + JS) + OSV.dev CVE/GHSA lookups (`vulnerable_dependency`, default on, `--offline` opt-out), exploitability-first ranking, and a CycloneDX 1.6 AI-BOM (`-o cyclonedx`) with honestly-scoped VEX — see the [CHANGELOG](CHANGELOG.md).
-
-**Shipped in v0.4:** `git-history` command (all-reachable-commit secret scanning with `--verify` composition), AI-supply-chain signature pack (`polyglot_file`, `skill_prompt_injection`, `agent_config_malicious_content`, `langgrinch_lc_key`), and AWS access+secret pairing for reliable liveness verification — see the [CHANGELOG](CHANGELOG.md).
-
-**Shipped in v0.3:** active credential verification (`--verify`), Tier 3 provider detection, GitHub Actions + pre-commit + Code Scanning integration docs, and the full MITRE ATLAS coverage map — see the [CHANGELOG](CHANGELOG.md).
-
----
-
-## Documentation
-
-- [docs/COVERAGE.md](docs/COVERAGE.md) — full provider + supply-chain detection matrix
-- [docs/MITRE_ATLAS_COVERAGE.md](docs/MITRE_ATLAS_COVERAGE.md) — per-detection MITRE ATLAS technique mapping
-- [docs/INTEGRATIONS_CICD.md](docs/INTEGRATIONS_CICD.md) — GitHub Actions + pre-commit setup
-- [docs/INTEGRATIONS_CODE_SCANNING.md](docs/INTEGRATIONS_CODE_SCANNING.md) — GitHub Code Scanning (SARIF) setup + `verified-live` tag filtering
-- [docs/README_ADVANCED.md](docs/README_ADVANCED.md) — advanced module reference
-- [CHANGELOG.md](CHANGELOG.md) — release history
+Design principles: **precision over recall** (every finding type ships with a fixture corpus), **fail-closed gating**, and **honest scoping** (the tool says what it can't scan rather than silently skipping). 457 tests, green across Python 3.9–3.12.
 
 ---
 
 ## Responsible Use
 
-This tool is intended for:
-- Authorized penetration testing
-- Bug bounty programs (in-scope targets)
-- Security audits with permission
-- Validating your own infrastructure
-
-**Never** use against targets without explicit authorization.
+Credence is a **defensive** security tool for auditing systems you own or are authorized to test. Active verification (`--verify`) sends authentication probes to provider APIs and is **opt-in**, printing a consent banner before running. Do not scan targets without authorization.
 
 ---
 
 ## Research Basis
 
-Built on current threat intelligence:
-
-| Threat | Source | Impact |
-|--------|--------|--------|
-| React2Shell | CVE-2025-55182 | CVSS 10.0 RCE |
-| ML Poisoning | nullifAI research | Arbitrary code execution |
-| GlassWorm | VS Code supply chain | Self-propagating worm |
-| RAG Poisoning | OWASP LLM Top 10 | AI manipulation |
-| Slopsquatting | USENIX 2025 | LLM-hallucinated package abuse |
-| TeamPCP | Supply-chain incident | .pth persistence + data exfil |
+Detection logic is grounded in current research and disclosed incidents, including: USENIX 2025 (slopsquatting / LLM-hallucinated packages), arXiv:2604.03070 (agent-skill credential leakage), CVE-2025-55182 (React2Shell), CVE-2025-68664 (LangGrinch / LangChain memory poisoning), CVE-2025-41390 (malicious `.git/config` RCE), the TeamPCP supply-chain campaign, and the May 2026 CISA contractor leak.
 
 ---
 
-## Contributing
+## Documentation
 
-Contributions welcome! Areas of interest:
-- New detection patterns
-- Framework-specific scanners
-- ML model format analysis
-- Unicode attack patterns
+| Doc | Contents |
+|---|---|
+| [COVERAGE.md](docs/COVERAGE.md) | Full provider + finding-type detection matrix |
+| [USAGE.md](docs/USAGE.md) | Install, configure, and run |
+| [README_ADVANCED.md](docs/README_ADVANCED.md) | Advanced modules + MCP server |
+| [INTEGRATIONS_CICD.md](docs/INTEGRATIONS_CICD.md) | GitHub Actions + pre-commit |
+| [INTEGRATIONS_CODE_SCANNING.md](docs/INTEGRATIONS_CODE_SCANNING.md) | SARIF → GitHub Code Scanning |
+| [MITRE_ATLAS_COVERAGE.md](docs/MITRE_ATLAS_COVERAGE.md) | ATLAS technique mapping |
+| [CHANGELOG.md](CHANGELOG.md) | Release history |
 
 ---
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details.
-
----
-
-<div align="center">
-
-**Built for security researchers defending AI and developer infrastructure**
-
-</div>
+MIT — see [LICENSE](LICENSE).
