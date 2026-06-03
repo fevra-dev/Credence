@@ -41,7 +41,9 @@ classifiers = [
     "Topic :: System :: Networking :: Monitoring",
 ]
 dependencies = [
-    "aiohttp>=3.9.0",
+    # Cap <3.14: aiohttp 3.14 made ClientResponse.__init__ require `stream_writer`,
+    # which the current aioresponses test mock does not pass. Lift when aioresponses updates.
+    "aiohttp>=3.9.0,<3.14",
     "click>=8.1.0",
     "colorama>=0.4.6",
     "httpx>=0.27.0",
