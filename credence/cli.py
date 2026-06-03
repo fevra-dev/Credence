@@ -7,6 +7,7 @@ Usage:
 """
 
 import logging
+import os
 import sys
 from typing import List, Optional
 
@@ -200,6 +201,15 @@ def _route_argv(argv, known):
 def main():
     """Console entry point: the unified `credence` group with a default `scan` command."""
     from .cli_advanced import cli as cli_group  # lazy import → no import cycle
+    # Deprecation notice when invoked via the legacy `gitexpose` alias (kept one
+    # release). prog_name stays `credence` so help/usage shows the new command.
+    invoked = os.path.basename(sys.argv[0]) if sys.argv else ""
+    if invoked == "gitexpose":
+        print(
+            "⚠  `gitexpose` is deprecated and will be removed in the next release — "
+            "use `credence` instead (same commands).",
+            file=sys.stderr,
+        )
     known = set(cli_group.commands)
     cli_group.main(args=_route_argv(sys.argv[1:], known), prog_name="credence")
 

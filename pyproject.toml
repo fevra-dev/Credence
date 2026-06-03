@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "gitexpose"
+name = "credence-scan"
 version = "0.8.1"
-description = "Exposure intelligence for AI and dev infrastructure — credential, AI-tool config, and supply-chain detection"
+description = "Credence — exposure intelligence for the AI-infrastructure layer: finds and weighs leaked credentials, MCP/agent configs, git-metadata secrets, and supply-chain risk, and tells you which exposures to trust."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
 authors = [
-    {name = "GitExpose Contributors"}
+    {name = "Credence Contributors"}
 ]
 keywords = [
     "security",
@@ -84,21 +84,24 @@ dev = [
 ]
 
 [project.scripts]
-gitexpose = "gitexpose.cli:main"
+credence = "credence.cli:main"
+# Deprecated alias kept for one release so existing `gitexpose ...` scripts keep
+# working; it prints a deprecation notice and forwards to the same entry point.
+gitexpose = "credence.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/fevra-dev/GitExpose"
-Documentation = "https://github.com/fevra-dev/GitExpose/tree/main/docs"
-Issues = "https://github.com/fevra-dev/GitExpose/issues"
-Changelog = "https://github.com/fevra-dev/GitExpose/releases"
+Homepage = "https://github.com/fevra-dev/Credence"
+Documentation = "https://github.com/fevra-dev/Credence/tree/main/docs"
+Issues = "https://github.com/fevra-dev/Credence/issues"
+Changelog = "https://github.com/fevra-dev/Credence/releases"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["gitexpose*"]
+include = ["credence*"]
 
 [tool.setuptools.package-data]
-gitexpose = ["data/*.json"]
-"gitexpose.agent_exposure" = ["data/*.json"]
+credence = ["data/*.json"]
+"credence.agent_exposure" = ["data/*.json"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
