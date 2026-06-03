@@ -121,3 +121,11 @@ uv.lock
 
 # Audit working artifacts (/arch /attack /audit)
 .audit/
+
+# Private research/scratch — keep local, never publish (stripped from history 2026-06-03)
+/docs/new_research/*.md
+/docs/new_research/*.html
+!/docs/new_research/naming-candidates.md
+!/docs/new_research/naming-candidates.html
+/github notes from linkedin.md
+/trufflehog-features-4-prizm+gitexpose.md
