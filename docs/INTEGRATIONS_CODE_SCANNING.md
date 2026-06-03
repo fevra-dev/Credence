@@ -1,6 +1,6 @@
-# GitExpose × GitHub Code Scanning
+# Credence × GitHub Code Scanning
 
-GitExpose emits SARIF 2.1.0 (vendored schema validated) so its findings show up
+Credence emits SARIF 2.1.0 (vendored schema validated) so its findings show up
 natively in GitHub Code Scanning. This page covers the end-to-end setup.
 
 ## What you get
@@ -17,17 +17,17 @@ natively in GitHub Code Scanning. This page covers the end-to-end setup.
    Settings → Security → Code security and analysis → Code scanning → Set up
    advanced.
 
-2. **Add the GitExpose workflow**. Copy `.github/workflows/gitexpose-scan.yml`
+2. **Add the Credence workflow**. Copy `.github/workflows/credence-scan.yml`
    from this repo into your own.
 
-3. **Push**. On the next PR or push to main, GitExpose runs and uploads SARIF.
+3. **Push**. On the next PR or push to main, Credence runs and uploads SARIF.
 
 4. **Review alerts**. Open the "Security" tab on your repo. New alerts appear
    under "Code scanning alerts".
 
 ## Filtering by verification status
 
-GitExpose v0.3 emits SARIF `properties.tags` entries:
+Credence v0.3 emits SARIF `properties.tags` entries:
 
 - `verified-live` — credential confirmed active by the provider
 - `verified-dead` — credential rejected by the provider
@@ -47,9 +47,9 @@ confirmed exploitable today.
     {
       "tool": {
         "driver": {
-          "name": "GitExpose",
+          "name": "Credence",
           "version": "0.3.0",
-          "informationUri": "https://github.com/fevra-dev/GitExpose"
+          "informationUri": "https://github.com/fevra-dev/Credence"
         }
       },
       "results": [
@@ -82,6 +82,6 @@ confirmed exploitable today.
   `security-events: write` permission, which the sample workflow sets.
 - **Too many alerts?** Use `--severity-threshold HIGH` in the scan step to drop
   MEDIUM/LOW findings before SARIF upload.
-- **SARIF rejected by GitHub?** GitExpose validates its own output against the
+- **SARIF rejected by GitHub?** Credence validates its own output against the
   vendored 2.1.0 schema in `tests/fixtures/sarif-schema-2.1.0.json`. If GitHub
   rejects it, file an issue with the offending finding's JSON snippet.

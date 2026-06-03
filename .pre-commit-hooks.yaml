@@ -2,21 +2,21 @@
 #
 #   # In a downstream repo's .pre-commit-config.yaml:
 #   repos:
-#     - repo: https://github.com/fevra-dev/GitExpose
+#     - repo: https://github.com/fevra-dev/Credence
 #       rev: v0.6.1
 #       hooks:
-#         - id: gitexpose-supply-chain
+#         - id: credence-supply-chain
 #
-# `gitexpose supply-chain` scans a directory TREE (lock files + working-tree files),
+# `credence supply-chain` scans a directory TREE (lock files + working-tree files),
 # not individual files — so this hook runs once over the repo root, not per staged
-# file (the old per-file `gitexpose-staged` hook was removed: supply-chain's PATH is
+# file (the old per-file `credence-staged` hook was removed: supply-chain's PATH is
 # directory-only). The `advanced` extra deps are pulled in via additional_dependencies
 # so the local-filesystem scanner imports cleanly in pre-commit's isolated environment.
 
-- id: gitexpose-supply-chain
-  name: GitExpose supply-chain scan (full repo)
+- id: credence-supply-chain
+  name: Credence supply-chain scan (full repo)
   description: Scan the working tree for credentials and supply-chain risk
-  entry: gitexpose supply-chain .
+  entry: credence supply-chain .
   language: python
   pass_filenames: false
   always_run: true

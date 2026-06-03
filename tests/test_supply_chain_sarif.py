@@ -29,7 +29,7 @@ def test_supply_chain_sarif_has_runs_and_tool(tmp_path):
     )
     doc = json.loads(res.stdout)
     run = doc["runs"][0]
-    assert run["tool"]["driver"]["name"] == "GitExpose"
+    assert run["tool"]["driver"]["name"] == "Credence"
     # the tracked secret should carry a partial fingerprint
     fps = [r.get("partialFingerprints", {}) for r in run["results"]]
     assert any("secretValueHash/v1" in fp for fp in fps)

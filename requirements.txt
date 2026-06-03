@@ -1,4 +1,4 @@
-# GitExpose - Core Dependencies
+# Credence - Core Dependencies
 # Cap <3.14: aiohttp 3.14 made ClientResponse.__init__ require `stream_writer`,
 # which the current aioresponses (0.7.8) test mock does not pass — see test_scanner.
 # Lift once aioresponses ships compatibility.

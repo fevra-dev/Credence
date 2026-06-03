@@ -1,5 +1,5 @@
 """
-GitExpose - Exposure intelligence for AI and dev infrastructure
+Credence - Exposure intelligence for AI and dev infrastructure
 
 A comprehensive, high-performance security scanner that detects exposed sensitive
 files, vulnerable frameworks, AI/ML infrastructure, and supply chain threats.
@@ -18,9 +18,9 @@ Core Capabilities:
 - MCP server for AI agent integration
 
 Usage:
-    from credence import GitExposeScanner
+    from credence import CredenceScanner
     
-    scanner = GitExposeScanner()
+    scanner = CredenceScanner()
     report = scanner.scan_sync(['example.com'])
     
     # Advanced modules
@@ -30,13 +30,13 @@ Usage:
 """
 
 __version__ = "0.8.1"
-__author__ = "GitExpose Contributors"
+__author__ = "Credence Contributors"
 __license__ = "MIT"
 
 # Core scanner
 # Models
 from .models import ScanReport, ScanResult, TargetReport
-from .scanner import GitExposeScanner
+from .scanner import CredenceScanner
 
 
 # Submodule exports (lazy import to avoid circular dependencies)
@@ -62,7 +62,7 @@ __all__ = [
     '__author__',
     '__license__',
     # Core
-    'GitExposeScanner',
+    'CredenceScanner',
     # Models
     'ScanReport',
     'TargetReport',

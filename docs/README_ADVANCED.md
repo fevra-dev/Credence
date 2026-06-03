@@ -1,4 +1,4 @@
-# GitExpose Advanced Features
+# Credence Advanced Features
 
 <div align="center">
 
@@ -16,7 +16,7 @@
 
 ## Overview
 
-GitExpose v0.2.0 ships five advanced detection modules in `gitexpose/advanced/`, alongside the core credential and supply-chain scanners. See [docs/COVERAGE.md](COVERAGE.md) for the full detection matrix (23-provider credential matrix, supply-chain indicators, compliance taxonomies).
+Credence v0.2.0 ships five advanced detection modules in `credence/advanced/`, alongside the core credential and supply-chain scanners. See [docs/COVERAGE.md](COVERAGE.md) for the full detection matrix (23-provider credential matrix, supply-chain indicators, compliance taxonomies).
 
 | Module | Threat Addressed | Research Basis |
 |--------|------------------|----------------|
@@ -32,19 +32,19 @@ GitExpose v0.2.0 ships five advanced detection modules in `gitexpose/advanced/`,
 
 ```bash
 # Full security audit
-gitexpose scan example.com --full-audit
+credence scan example.com --full-audit
 
 # Specific scans
-gitexpose react2shell https://nextjs-app.com
-gitexpose ml-scan https://api.example.com
-gitexpose llm-scan https://ai-app.com
-gitexpose unicode-scan --file suspicious.js
+credence react2shell https://nextjs-app.com
+credence ml-scan https://api.example.com
+credence llm-scan https://ai-app.com
+credence unicode-scan --file suspicious.js
 
 # Local supply-chain scan
-gitexpose supply-chain ./my-project
+credence supply-chain ./my-project
 
 # Start MCP server for AI agents
-gitexpose mcp
+credence mcp
 ```
 
 ---
@@ -64,7 +64,7 @@ Detects the **CVE-2025-55182** vulnerability — a critical pre-authentication R
 
 **Technical Details:**
 ```python
-from gitexpose.advanced import React2ShellDetector
+from credence.advanced import React2ShellDetector
 
 detector = React2ShellDetector(deep_scan=True)
 finding = await detector.scan("https://nextjs-app.com")
@@ -76,8 +76,8 @@ print(f"Risk Score: {finding.risk_score}/10.0")
 
 **CLI Usage:**
 ```bash
-gitexpose react2shell https://target.com --deep-scan
-gitexpose react2shell https://target.com -o json
+credence react2shell https://target.com --deep-scan
+credence react2shell https://target.com -o json
 ```
 
 ---
@@ -109,7 +109,7 @@ Scans for exposed machine learning model files that could execute arbitrary code
 - 7z compression evasion technique detection
 
 ```python
-from gitexpose.advanced import MLModelScanner
+from credence.advanced import MLModelScanner
 
 scanner = MLModelScanner(deep_analysis=True)
 result = await scanner.scan("https://ml-api.com")
@@ -144,7 +144,7 @@ Detects exposed AI/LLM infrastructure as organizations rapidly deploy AI without
 - Agent configs reveal tool permissions and attack surface
 
 ```python
-from gitexpose.advanced import LLMExposureScanner
+from credence.advanced import LLMExposureScanner
 
 scanner = LLMExposureScanner()
 result = await scanner.scan("https://ai-app.com")
@@ -174,7 +174,7 @@ Detects invisible Unicode characters used in supply chain attacks like **GlassWo
 
 **GlassWorm Pattern Detection:**
 ```python
-from gitexpose.advanced import InvisibleUnicodeAnalyzer
+from credence.advanced import InvisibleUnicodeAnalyzer
 
 analyzer = InvisibleUnicodeAnalyzer(strict_mode=True)
 anomalies = analyzer.analyze(suspicious_code)
@@ -192,37 +192,37 @@ if hidden:
 **CLI Usage:**
 ```bash
 # Scan URL for infected JavaScript
-gitexpose unicode-scan https://cdn.example.com/bundle.js
+credence unicode-scan https://cdn.example.com/bundle.js
 
 # Analyze local file
-gitexpose unicode-scan --file suspicious-extension/index.js
+credence unicode-scan --file suspicious-extension/index.js
 ```
 
 ---
 
 ### 5. MCP Server (`mcp_server.py`)
 
-Implements the **Model Context Protocol** to expose GitExpose as tools for AI agents.
+Implements the **Model Context Protocol** to expose Credence as tools for AI agents.
 
 **Available MCP Tools:**
 
 | Tool | Description |
 |------|-------------|
-| `gitexpose_scan` | Comprehensive sensitive file scan |
-| `gitexpose_git_dump` | Git repository reconstruction |
-| `gitexpose_extract_secrets` | Credential extraction |
-| `gitexpose_react2shell_detect` | React2Shell vulnerability check |
-| `gitexpose_ml_model_scan` | ML model poisoning scan |
-| `gitexpose_llm_exposure_scan` | AI infrastructure exposure |
-| `gitexpose_unicode_detect` | Invisible Unicode detection |
+| `credence_scan` | Comprehensive sensitive file scan |
+| `credence_git_dump` | Git repository reconstruction |
+| `credence_extract_secrets` | Credential extraction |
+| `credence_react2shell_detect` | React2Shell vulnerability check |
+| `credence_ml_model_scan` | ML model poisoning scan |
+| `credence_llm_exposure_scan` | AI infrastructure exposure |
+| `credence_unicode_detect` | Invisible Unicode detection |
 
 **Configuration for Claude/Cursor:**
 ```json
 {
   "mcpServers": {
-    "gitexpose": {
+    "credence": {
       "command": "python",
-      "args": ["-m", "gitexpose.advanced.mcp_server"]
+      "args": ["-m", "credence.advanced.mcp_server"]
     }
   }
 }
@@ -230,12 +230,12 @@ Implements the **Model Context Protocol** to expose GitExpose as tools for AI ag
 
 **Starting the Server:**
 ```bash
-gitexpose mcp
+credence mcp
 ```
 
 ---
 
-## Supply-Chain Scanning (`gitexpose supply-chain`)
+## Supply-Chain Scanning (`credence supply-chain`)
 
 In addition to the advanced modules above, v0.2 adds a local supply-chain scanner covering AI-specific attack patterns:
 
@@ -257,8 +257,8 @@ See [docs/COVERAGE.md](COVERAGE.md) for the full credential matrix, AI-tool conf
 ## Architecture
 
 ```
-gitexpose/
-├── gitexpose/
+credence/
+├── credence/
 │   ├── __init__.py
 │   ├── cli.py
 │   ├── scanner.py
@@ -295,19 +295,19 @@ All scan modes support multiple output formats:
 
 ```bash
 # Console (default)
-gitexpose scan target.com --full-audit
+credence scan target.com --full-audit
 
 # JSON
-gitexpose scan target.com --full-audit -o json --out-file results.json
+credence scan target.com --full-audit -o json --out-file results.json
 
 # HTML report
-gitexpose scan target.com --full-audit -o html --out-file report.html
+credence scan target.com --full-audit -o html --out-file report.html
 
 # CSV
-gitexpose scan target.com --full-audit -o csv --out-file results.csv
+credence scan target.com --full-audit -o csv --out-file results.csv
 
 # SARIF 2.1.0 (GitHub Advanced Security, VS Code, etc.)
-gitexpose scan target.com --full-audit -o sarif --out-file results.sarif
+credence scan target.com --full-audit -o sarif --out-file results.sarif
 ```
 
 Every finding includes OWASP LLM Top 10 (`attack_class`) and MITRE ATLAS technique (`atlas_technique`) metadata, emitted in all output formats.
@@ -334,35 +334,35 @@ No external service is queried at scan time. All detections are local pattern ma
 ### Security Audit
 ```bash
 # Full audit with all modules; SARIF output for CI integration
-gitexpose scan target.com --full-audit -o sarif --out-file audit.sarif
+credence scan target.com --full-audit -o sarif --out-file audit.sarif
 ```
 
 ### Bug Bounty
 ```bash
 # Quick reconnaissance
-gitexpose scan target.com --react2shell --source-maps --git-dump
+credence scan target.com --react2shell --source-maps --git-dump
 ```
 
 ### AI Security Assessment
 ```bash
 # Audit AI/ML deployments
-gitexpose llm-scan https://ai-app.com
-gitexpose ml-scan https://ml-api.com --deep-analysis
+credence llm-scan https://ai-app.com
+credence ml-scan https://ml-api.com --deep-analysis
 ```
 
 ### Supply Chain Defense
 ```bash
 # Check for invisible Unicode in a package
-gitexpose unicode-scan --file node_modules/suspicious-package/index.js
+credence unicode-scan --file node_modules/suspicious-package/index.js
 
 # Scan local project for supply-chain risk
-gitexpose supply-chain ./my-project
+credence supply-chain ./my-project
 ```
 
 ### AI Agent Integration
 ```bash
 # Start MCP server for autonomous scanning workflows
-gitexpose mcp
+credence mcp
 ```
 
 ---
@@ -388,11 +388,11 @@ The following are planned but not shipping in v0.2. Track via GitHub issues.
 
 ```bash
 # Install with all dependencies
-pip install gitexpose[advanced]
+pip install "credence-scan[advanced]"
 
 # Or install from source
-git clone https://github.com/fevra-dev/GitExpose.git
-cd gitexpose
+git clone https://github.com/fevra-dev/Credence.git
+cd credence
 pip install -e ".[advanced]"
 ```
 
@@ -426,6 +426,6 @@ MIT License — see [LICENSE](../LICENSE) for details.
 
 **Built for security researchers defending AI and developer infrastructure**
 
-[Report Bug](https://github.com/fevra-dev/GitExpose/issues) · [Request Feature](https://github.com/fevra-dev/GitExpose/issues)
+[Report Bug](https://github.com/fevra-dev/Credence/issues) · [Request Feature](https://github.com/fevra-dev/Credence/issues)
 
 </div>

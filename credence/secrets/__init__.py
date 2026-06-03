@@ -1,5 +1,5 @@
 """
-GitExpose Secret Extraction Module
+Credence Secret Extraction Module
 
 Credential detection and validation:
 - Pattern-based secret extraction (30+ secret types)

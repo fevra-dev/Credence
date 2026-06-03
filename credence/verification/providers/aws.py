@@ -69,7 +69,7 @@ def _build_signed_request(access_key: str, secret_key: str) -> dict[str, str]:
         "Content-Type": "application/x-www-form-urlencoded",
         "X-Amz-Date": amz_date,
         "Authorization": authorization,
-        "User-Agent": "GitExpose-Verify/0.3",
+        "User-Agent": "Credence-Verify/0.3",
     }
 
 

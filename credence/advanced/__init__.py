@@ -1,5 +1,5 @@
 """
-GitExpose Advanced Security Modules
+Credence Advanced Security Modules
 
 Cutting-edge security scanning capabilities addressing the 2025 threat landscape:
 - React2Shell Detection (CVE-2025-55182)
@@ -21,7 +21,7 @@ from .cloud_scanner import CloudAssetScanner
 from .iac_scanner import IaCScanner
 from .invisible_unicode_detector import InvisibleUnicodeAnalyzer, InvisibleUnicodeScanner
 from .llm_exposure_scanner import LLMExposureScanner, LLMScanResult
-from .mcp_server import GitExposeMCPServer
+from .mcp_server import CredenceMCPServer
 from .ml_model_scanner import MLModelScanner, MLScanResult, PickleAnalyzer
 from .react2shell_detector import React2ShellDetector, React2ShellFinding
 from .sourcemap_analyzer import SourceMapAnalyzer
@@ -64,5 +64,5 @@ __all__ = [
     'StealthScanner',
 
     # MCP Server
-    'GitExposeMCPServer',
+    'CredenceMCPServer',
 ]

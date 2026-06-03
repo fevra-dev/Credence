@@ -1,4 +1,4 @@
-"""Setup script for GitExpose."""
+"""Setup script for Credence."""
 
 from setuptools import setup, find_packages
 
@@ -8,7 +8,7 @@ setup(
     description="Exposure intelligence for AI and dev infrastructure — credential, AI-tool config, and supply-chain detection",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    author="GitExpose Contributors",
+    author="Credence Contributors",
     license="MIT",
     packages=find_packages(),
     package_data={"credence": ["data/*.json"]},

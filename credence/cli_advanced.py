@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GitExpose Advanced CLI
+Credence Advanced CLI
 
 Unified command-line interface integrating all advanced security scanning
 capabilities including:
@@ -11,7 +11,7 @@ capabilities including:
 - Invisible Unicode Detection
 - MCP Server Mode
 
-Author: GitExpose Security Research
+Author: Credence Security Research
 """
 
 import asyncio
@@ -41,7 +41,7 @@ except ImportError:
 
 
 def print_banner():
-    """Print GitExpose banner"""
+    """Print Credence banner"""
     banner = """
 ╔═══════════════════════════════════════════════════════════════════╗
 ║                                                                   ║
@@ -105,10 +105,10 @@ def print_finding(severity: str, message: str, url: str = None):
 
 
 @click.group()
-@click.version_option(version=__version__, prog_name="GitExpose")
+@click.version_option(version=__version__, prog_name="Credence")
 def cli():
     """
-    GitExpose Advanced - Next-Gen Security Scanner
+    Credence Advanced - Next-Gen Security Scanner
     
     Comprehensive scanner for exposed sensitive files, vulnerable frameworks,
     AI/ML infrastructure, and supply chain threats.
@@ -538,7 +538,7 @@ def generate_html_report(results: dict) -> str:
     return f"""<!DOCTYPE html>
 <html>
 <head>
-    <title>GitExpose Security Report</title>
+    <title>Credence Security Report</title>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{ font-family: 'Segoe UI', sans-serif; background: #0a0a0f; color: #e0e0e0; }}
@@ -560,7 +560,7 @@ def generate_html_report(results: dict) -> str:
 <body>
     <div class="container">
         <header>
-            <h1>🔍 GitExpose Security Report</h1>
+            <h1>🔍 Credence Security Report</h1>
             <p>Target: {results['target']}</p>
             <p>Generated: {results['timestamp']}</p>
         </header>
@@ -781,9 +781,9 @@ async def _run_unicode_file(file_path: str, output: str):
 @cli.command()
 def mcp():
     """
-    Start GitExpose as an MCP server.
+    Start Credence as an MCP server.
     
-    Enables AI agents (Claude, GPT) to use GitExpose tools
+    Enables AI agents (Claude, GPT) to use Credence tools
     via the Model Context Protocol.
     """
     from .mcp_server import main as mcp_main
@@ -807,7 +807,7 @@ def list_tools():
     ]
 
     if RICH_AVAILABLE:
-        table = Table(title="GitExpose Tools")
+        table = Table(title="Credence Tools")
         table.add_column("Command", style="cyan")
         table.add_column("Description", style="white")
         table.add_column("Key Options", style="dim")

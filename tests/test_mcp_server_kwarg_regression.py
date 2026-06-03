@@ -4,7 +4,7 @@ import inspect
 
 import pytest
 
-from credence.advanced.mcp_server import GitExposeMCPServer
+from credence.advanced.mcp_server import CredenceMCPServer
 from credence.secrets.secret_extractor import SecretExtractor
 
 
@@ -22,7 +22,7 @@ def test_secret_extractor_extract_has_no_validate_kwarg():
 async def test_mcp_server_execute_secret_extraction_succeeds_with_validate():
     """Integration: _execute_secret_extraction completes without falling into
     the try/except error path when validate=True is requested."""
-    server = GitExposeMCPServer()
+    server = CredenceMCPServer()
     result = await server._execute_secret_extraction({
         "content": "GROQ_API_KEY=gsk_" + "a" * 52,
         "validate": True,

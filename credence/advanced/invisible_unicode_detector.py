@@ -21,7 +21,7 @@ These techniques are used to:
 
 Based on research: GlassWorm VS Code extension worm (2025)
 
-Author: GitExpose Security Research
+Author: Credence Security Research
 """
 
 import asyncio

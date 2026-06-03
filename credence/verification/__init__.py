@@ -1,4 +1,4 @@
-"""Active verification engine for GitExpose v0.3.
+"""Active verification engine for Credence v0.3.
 
 Sends low-footprint, side-effect-free authentication checks to provider APIs
 to confirm whether a discovered credential is live. Opt-in via --verify.

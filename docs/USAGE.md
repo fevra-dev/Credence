@@ -1,6 +1,6 @@
-# GitExpose - How to Run and Use Guide
+# Credence - How to Run and Use Guide
 
-A comprehensive guide to installing, configuring, and using GitExpose for scanning web targets for exposed sensitive files.
+A comprehensive guide to installing, configuring, and using Credence for scanning web targets for exposed sensitive files.
 
 ---
 
@@ -30,11 +30,11 @@ A comprehensive guide to installing, configuring, and using GitExpose for scanni
 
 ```bash
 # If you have the repository
-cd /path/to/GitExpose
+cd /path/to/Credence
 
 # Or clone from GitHub (when published)
-git clone https://github.com/fevra-dev/GitExpose.git
-cd gitexpose
+git clone https://github.com/fevra-dev/Credence.git
+cd credence
 ```
 
 ### Step 2: Install Dependencies
@@ -47,7 +47,7 @@ pip3 install -r requirements.txt
 pip3 install --user -r requirements.txt
 ```
 
-### Step 3: Install GitExpose (Optional)
+### Step 3: Install Credence (Optional)
 
 ```bash
 # Install in editable mode (recommended for development)
@@ -57,7 +57,7 @@ pip3 install -e .
 pip3 install .
 ```
 
-**Note:** If you encounter permission errors, you can run GitExpose directly without installing (see [Running Without Installation](#running-without-installation)).
+**Note:** If you encounter permission errors, you can run Credence directly without installing (see [Running Without Installation](#running-without-installation)).
 
 ---
 
@@ -65,24 +65,24 @@ pip3 install .
 
 ### Running Without Installation
 
-You can run GitExpose directly as a Python module without installing it:
+You can run Credence directly as a Python module without installing it:
 
 ```bash
 # Basic scan
-python3 -m gitexpose.cli example.com
+python3 -m credence.cli example.com
 
 # Using the wrapper script
-./gitexpose.sh example.com
+./credence.sh example.com
 ```
 
 ### Your First Scan
 
 ```bash
 # Scan a single target
-python3 -m gitexpose.cli example.com
+python3 -m credence.cli example.com
 
 # Scan multiple targets
-python3 -m gitexpose.cli example.com example.org https://target.io
+python3 -m credence.cli example.com example.org https://target.io
 ```
 
 ---
@@ -92,7 +92,7 @@ python3 -m gitexpose.cli example.com example.org https://target.io
 ### Command Syntax
 
 ```bash
-python3 -m gitexpose.cli [OPTIONS] [TARGETS]...
+python3 -m credence.cli [OPTIONS] [TARGETS]...
 ```
 
 ### Required Arguments
@@ -105,16 +105,16 @@ python3 -m gitexpose.cli [OPTIONS] [TARGETS]...
 
 ```bash
 # Scan a single domain
-python3 -m gitexpose.cli example.com
+python3 -m credence.cli example.com
 
 # Scan multiple domains
-python3 -m gitexpose.cli example.com example.org subdomain.example.com
+python3 -m credence.cli example.com example.org subdomain.example.com
 
 # Scan with HTTPS (auto-added if no scheme specified)
-python3 -m gitexpose.cli https://example.com
+python3 -m credence.cli https://example.com
 
 # Scan from a file
-python3 -m gitexpose.cli -f targets.txt
+python3 -m credence.cli -f targets.txt
 ```
 
 ### Target File Format
@@ -132,7 +132,7 @@ another-target.com
 
 Then scan with:
 ```bash
-python3 -m gitexpose.cli -f targets.txt
+python3 -m credence.cli -f targets.txt
 ```
 
 ---
@@ -145,10 +145,10 @@ Adjust the number of concurrent requests for faster scanning:
 
 ```bash
 # High concurrency (faster, but may trigger rate limits)
-python3 -m gitexpose.cli -f targets.txt -c 100
+python3 -m credence.cli -f targets.txt -c 100
 
 # Low concurrency (slower, but more respectful)
-python3 -m gitexpose.cli -f targets.txt -c 10
+python3 -m credence.cli -f targets.txt -c 10
 
 # Default is 50 concurrent requests
 ```
@@ -159,10 +159,10 @@ Set custom timeout values:
 
 ```bash
 # Short timeout (5 seconds)
-python3 -m gitexpose.cli example.com -t 5
+python3 -m credence.cli example.com -t 5
 
 # Long timeout (30 seconds for slow servers)
-python3 -m gitexpose.cli example.com -t 30
+python3 -m credence.cli example.com -t 30
 
 # Default is 10 seconds
 ```
@@ -173,18 +173,18 @@ Use a custom User-Agent string:
 
 ```bash
 # Mimic a browser
-python3 -m gitexpose.cli example.com --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+python3 -m credence.cli example.com --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
 # Custom scanner identifier
-python3 -m gitexpose.cli example.com --user-agent "MySecurityScanner/1.0"
+python3 -m credence.cli example.com --user-agent "MySecurityScanner/1.0"
 ```
 
 ### Follow Redirects
 
-By default, GitExpose does not follow redirects. Enable redirect following:
+By default, Credence does not follow redirects. Enable redirect following:
 
 ```bash
-python3 -m gitexpose.cli example.com --follow-redirects
+python3 -m credence.cli example.com --follow-redirects
 ```
 
 **Note:** Not following redirects helps detect redirect-based false positives (e.g., `.git/config` redirecting to `/login`).
@@ -198,12 +198,12 @@ python3 -m gitexpose.cli example.com --follow-redirects
 Colored, human-readable output:
 
 ```bash
-python3 -m gitexpose.cli example.com
+python3 -m credence.cli example.com
 ```
 
 **Output:**
 ```
-🔍 GitExpose - Sensitive File Scanner
+🔍 Credence - Sensitive File Scanner
 
 ────────────────────────────────────────────────────────────
 🎯 https://example.com
@@ -225,7 +225,7 @@ Duration: 2.45s
 Structured JSON for automation and parsing:
 
 ```bash
-python3 -m gitexpose.cli example.com -o json
+python3 -m credence.cli example.com -o json
 ```
 
 **Output:**
@@ -273,7 +273,7 @@ python3 -m gitexpose.cli example.com -o json
 Spreadsheet-friendly format:
 
 ```bash
-python3 -m gitexpose.cli example.com -o csv
+python3 -m credence.cli example.com -o csv
 ```
 
 **Output:**
@@ -286,13 +286,13 @@ https://example.com,https://example.com/.git/config,.git/config,CRITICAL,git,Git
 
 ```bash
 # Save JSON output
-python3 -m gitexpose.cli -f targets.txt -o json --out-file results.json
+python3 -m credence.cli -f targets.txt -o json --out-file results.json
 
 # Save CSV output
-python3 -m gitexpose.cli -f targets.txt -o csv --out-file results.csv
+python3 -m credence.cli -f targets.txt -o csv --out-file results.csv
 
 # Save console output
-python3 -m gitexpose.cli -f targets.txt --out-file results.txt
+python3 -m credence.cli -f targets.txt --out-file results.txt
 ```
 
 ---
@@ -302,7 +302,7 @@ python3 -m gitexpose.cli -f targets.txt --out-file results.txt
 ### All Available Options
 
 ```bash
-python3 -m gitexpose.cli --help
+python3 -m credence.cli --help
 ```
 
 **Options:**
@@ -317,7 +317,7 @@ python3 -m gitexpose.cli --help
 | `--quiet` | `-q` | Only show vulnerable targets | false |
 | `--verbose` | `-v` | Enable verbose logging | false |
 | `--no-color` | - | Disable colored output | false |
-| `--user-agent` | - | Custom User-Agent string | GitExpose/1.0 |
+| `--user-agent` | - | Custom User-Agent string | Credence/1.0 |
 | `--follow-redirects` | - | Follow HTTP redirects | false |
 | `--version` | - | Show version and exit | - |
 | `--help` | `-h` | Show help message | - |
@@ -329,7 +329,7 @@ python3 -m gitexpose.cli --help
 ### Example 1: Basic Single Target Scan
 
 ```bash
-python3 -m gitexpose.cli example.com
+python3 -m credence.cli example.com
 ```
 
 **Use Case:** Quick check of a single target
@@ -341,7 +341,7 @@ python3 -m gitexpose.cli example.com
 echo -e "example.com\nexample.org\nsubdomain.example.com" > targets.txt
 
 # Scan all targets
-python3 -m gitexpose.cli -f targets.txt
+python3 -m credence.cli -f targets.txt
 ```
 
 **Use Case:** Scanning multiple targets from a list
@@ -349,7 +349,7 @@ python3 -m gitexpose.cli -f targets.txt
 ### Example 3: High-Speed Scanning
 
 ```bash
-python3 -m gitexpose.cli -f targets.txt -c 100 -t 5
+python3 -m credence.cli -f targets.txt -c 100 -t 5
 ```
 
 **Use Case:** Fast scanning of many targets with short timeout
@@ -358,7 +358,7 @@ python3 -m gitexpose.cli -f targets.txt -c 100 -t 5
 
 ```bash
 # Scan and exit with code 1 if vulnerabilities found
-python3 -m gitexpose.cli -f targets.txt -o json --out-file results.json
+python3 -m credence.cli -f targets.txt -o json --out-file results.json
 
 # Check exit code
 if [ $? -eq 1 ]; then
@@ -372,7 +372,7 @@ fi
 ### Example 5: Quiet Mode for Clean Output
 
 ```bash
-python3 -m gitexpose.cli -f targets.txt -q
+python3 -m credence.cli -f targets.txt -q
 ```
 
 **Use Case:** Only show targets with vulnerabilities (cleaner output)
@@ -380,7 +380,7 @@ python3 -m gitexpose.cli -f targets.txt -q
 ### Example 6: Verbose Logging for Debugging
 
 ```bash
-python3 -m gitexpose.cli example.com -v
+python3 -m credence.cli example.com -v
 ```
 
 **Use Case:** Debugging connection issues or understanding scan behavior
@@ -389,10 +389,10 @@ python3 -m gitexpose.cli example.com -v
 
 ```bash
 # Generate JSON report
-python3 -m gitexpose.cli -f targets.txt -o json --out-file scan_results.json
+python3 -m credence.cli -f targets.txt -o json --out-file scan_results.json
 
 # Generate CSV for spreadsheet analysis
-python3 -m gitexpose.cli -f targets.txt -o csv --out-file scan_results.csv
+python3 -m credence.cli -f targets.txt -o csv --out-file scan_results.csv
 ```
 
 **Use Case:** Sharing results with team or importing into other tools
@@ -400,7 +400,7 @@ python3 -m gitexpose.cli -f targets.txt -o csv --out-file scan_results.csv
 ### Example 8: Custom Configuration
 
 ```bash
-python3 -m gitexpose.cli \
+python3 -m credence.cli \
     -f targets.txt \
     -c 75 \
     -t 15 \
@@ -416,7 +416,7 @@ python3 -m gitexpose.cli \
 
 ## Exit Codes
 
-GitExpose uses exit codes for automation and CI/CD integration:
+Credence uses exit codes for automation and CI/CD integration:
 
 | Exit Code | Meaning |
 |-----------|---------|
@@ -429,7 +429,7 @@ GitExpose uses exit codes for automation and CI/CD integration:
 ```bash
 #!/bin/bash
 
-python3 -m gitexpose.cli -f targets.txt
+python3 -m credence.cli -f targets.txt
 
 case $? in
     0)
@@ -467,19 +467,19 @@ pip3 install -r requirements.txt
 pip3 install --user -e .
 
 # Option 2: Run without installing
-python3 -m gitexpose.cli example.com
+python3 -m credence.cli example.com
 ```
 
 #### Issue: "Connection timeout" errors
 
 **Solution:** Increase timeout value
 ```bash
-python3 -m gitexpose.cli example.com -t 30
+python3 -m credence.cli example.com -t 30
 ```
 
 #### Issue: Too many false positives
 
-**Solution:** GitExpose uses signature-based validation to reduce false positives. If you still see issues:
+**Solution:** Credence uses signature-based validation to reduce false positives. If you still see issues:
 - Check the evidence field in the output
 - Use verbose mode to see what's being detected: `-v`
 - False positives are filtered automatically, but custom 404 pages may still trigger
@@ -489,15 +489,15 @@ python3 -m gitexpose.cli example.com -t 30
 **Solution:** Reduce concurrency and add delays
 ```bash
 # Lower concurrency
-python3 -m gitexpose.cli -f targets.txt -c 10
+python3 -m credence.cli -f targets.txt -c 10
 
 # Use custom User-Agent
-python3 -m gitexpose.cli -f targets.txt --user-agent "Mozilla/5.0..."
+python3 -m credence.cli -f targets.txt --user-agent "Mozilla/5.0..."
 ```
 
 #### Issue: SSL certificate errors
 
-**Solution:** GitExpose disables SSL verification by default for scanning. If you need to verify SSL:
+**Solution:** Credence disables SSL verification by default for scanning. If you need to verify SSL:
 - This would require modifying the scanner code
 - For security scanning, disabling verification is often acceptable
 
@@ -510,7 +510,7 @@ python3 -m gitexpose.cli -f targets.txt --user-agent "Mozilla/5.0..."
 When scanning new targets, start with lower concurrency to avoid rate limiting:
 
 ```bash
-python3 -m gitexpose.cli -f targets.txt -c 10
+python3 -m credence.cli -f targets.txt -c 10
 ```
 
 ### 2. Use Appropriate Timeouts
@@ -519,10 +519,10 @@ Adjust timeouts based on target responsiveness:
 
 ```bash
 # Fast targets
-python3 -m gitexpose.cli -f targets.txt -t 5
+python3 -m credence.cli -f targets.txt -t 5
 
 # Slow targets
-python3 -m gitexpose.cli -f targets.txt -t 30
+python3 -m credence.cli -f targets.txt -t 30
 ```
 
 ### 3. Save Results for Analysis
@@ -530,7 +530,7 @@ python3 -m gitexpose.cli -f targets.txt -t 30
 Always save results when scanning multiple targets:
 
 ```bash
-python3 -m gitexpose.cli -f targets.txt -o json --out-file results_$(date +%Y%m%d).json
+python3 -m credence.cli -f targets.txt -o json --out-file results_$(date +%Y%m%d).json
 ```
 
 ### 4. Use Quiet Mode for Automation
@@ -538,7 +538,7 @@ python3 -m gitexpose.cli -f targets.txt -o json --out-file results_$(date +%Y%m%
 In scripts and CI/CD, use quiet mode for cleaner output:
 
 ```bash
-python3 -m gitexpose.cli -f targets.txt -q -o json --out-file results.json
+python3 -m credence.cli -f targets.txt -q -o json --out-file results.json
 ```
 
 ### 5. Verify Findings
@@ -577,7 +577,7 @@ Set up regular scans for your infrastructure:
 ```bash
 # Daily scan script
 #!/bin/bash
-python3 -m gitexpose.cli -f production_targets.txt \
+python3 -m credence.cli -f production_targets.txt \
     -o json \
     --out-file "scans/scan_$(date +%Y%m%d).json" \
     -q
@@ -608,9 +608,9 @@ jobs:
           python-version: '3.9'
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Run GitExpose
+      - name: Run Credence
         run: |
-          python3 -m gitexpose.cli -f targets.txt \
+          python3 -m credence.cli -f targets.txt \
             -o json \
             --out-file results.json
       - name: Upload results
@@ -624,7 +624,7 @@ jobs:
 
 ```bash
 # Add to crontab (crontab -e)
-0 2 * * * cd /path/to/gitexpose && python3 -m gitexpose.cli -f targets.txt -o json --out-file /var/log/gitexpose/scan_$(date +\%Y\%m\%d).json -q
+0 2 * * * cd /path/to/credence && python3 -m credence.cli -f targets.txt -o json --out-file /var/log/credence/scan_$(date +\%Y\%m\%d).json -q
 ```
 
 ### Python Script Integration
@@ -638,10 +638,10 @@ import json
 import sys
 
 def run_scan(targets_file):
-    """Run GitExpose and return results."""
+    """Run Credence and return results."""
     result = subprocess.run(
         [
-            "python3", "-m", "gitexpose.cli",
+            "python3", "-m", "credence.cli",
             "-f", targets_file,
             "-o", "json",
             "-q"
@@ -675,9 +675,9 @@ if __name__ == "__main__":
 
 ---
 
-## What GitExpose Scans For
+## What Credence Scans For
 
-GitExpose checks for 67+ sensitive paths across 7 categories:
+Credence checks for 67+ sensitive paths across 7 categories:
 
 ### Critical Findings
 - **Git Repository Files**: `.git/config`, `.git/HEAD`, `.git/index`
@@ -703,7 +703,7 @@ GitExpose checks for 67+ sensitive paths across 7 categories:
 
 ### ⚠️ Important: Responsible Use
 
-GitExpose is a security tool designed for:
+Credence is a security tool designed for:
 
 - ✅ **Authorized penetration testing**
 - ✅ **Bug bounty programs** (in-scope targets only)
@@ -725,7 +725,7 @@ GitExpose is a security tool designed for:
 ### Check the Help
 
 ```bash
-python3 -m gitexpose.cli --help
+python3 -m credence.cli --help
 ```
 
 ### Verbose Mode
@@ -733,29 +733,29 @@ python3 -m gitexpose.cli --help
 Enable verbose logging to see detailed information:
 
 ```bash
-python3 -m gitexpose.cli example.com -v
+python3 -m credence.cli example.com -v
 ```
 
 ### Common Commands Reference
 
 ```bash
 # Version
-python3 -m gitexpose.cli --version
+python3 -m credence.cli --version
 
 # Help
-python3 -m gitexpose.cli --help
+python3 -m credence.cli --help
 
 # Basic scan
-python3 -m gitexpose.cli example.com
+python3 -m credence.cli example.com
 
 # File input
-python3 -m gitexpose.cli -f targets.txt
+python3 -m credence.cli -f targets.txt
 
 # JSON output
-python3 -m gitexpose.cli example.com -o json
+python3 -m credence.cli example.com -o json
 
 # Save to file
-python3 -m gitexpose.cli example.com -o json --out-file results.json
+python3 -m credence.cli example.com -o json --out-file results.json
 ```
 
 ---
@@ -764,7 +764,7 @@ python3 -m gitexpose.cli example.com -o json --out-file results.json
 
 - **README.md**: Project overview and features
 - **LICENSE**: MIT License details
-- **Source Code**: Check the `gitexpose/` directory for implementation details
+- **Source Code**: Check the `credence/` directory for implementation details
 
 ---
 
@@ -774,7 +774,7 @@ Current version: **1.0.0**
 
 Check version:
 ```bash
-python3 -m gitexpose.cli --version
+python3 -m credence.cli --version
 ```
 
 ---

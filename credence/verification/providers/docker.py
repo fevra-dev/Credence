@@ -26,7 +26,7 @@ async def verify(secret: str, *, timeout: float = 5.0) -> VerificationResult:
             response = await client.post(
                 _LOGIN_URL,
                 json=body,
-                headers={"User-Agent": "GitExpose-Verify/0.3"},
+                headers={"User-Agent": "Credence-Verify/0.3"},
             )
     except httpx.TimeoutException:
         return VerificationResult(VerificationStatus.ERROR, "timeout")

@@ -1,1 +1,1 @@
-"""Data files for GitExpose detection corpora."""
+"""Data files for Credence detection corpora."""

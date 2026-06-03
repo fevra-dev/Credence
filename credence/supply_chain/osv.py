@@ -25,7 +25,7 @@ _VULN_URL = "https://api.osv.dev/v1/vulns/{id}"
 _BATCH_SIZE = 1000
 _DEFAULT_TIMEOUT = 10.0
 _DEFAULT_CONCURRENCY = 8
-_USER_AGENT = "GitExpose-SCA/0.5"
+_USER_AGENT = "Credence-SCA/0.5"
 
 
 def _fixed_version(osv_vuln: dict) -> Optional[str]:

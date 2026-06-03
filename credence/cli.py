@@ -1,5 +1,5 @@
 """
-GitExpose CLI interface.
+Credence CLI interface.
 
 Usage:
     credence example.com
@@ -15,7 +15,7 @@ import click
 
 from . import __version__
 from .reporters import ConsoleReporter, CSVReporter, JSONReporter, SARIFReporter
-from .scanner import GitExposeScanner
+from .scanner import CredenceScanner
 
 
 def setup_logging(verbose: bool) -> None:
@@ -79,7 +79,7 @@ def load_targets_from_file(filepath: str) -> List[str]:
 @click.option(
     "--user-agent",
     type=str,
-    default="GitExpose/1.0 (Security Scanner)",
+    default="Credence/1.0 (Security Scanner)",
     help="Custom User-Agent string",
 )
 @click.option("--follow-redirects", is_flag=True, help="Follow HTTP redirects")
@@ -110,7 +110,7 @@ def scan(
     """
     # Handle version flag
     if version:
-        click.echo(f"GitExpose v{__version__}")
+        click.echo(f"Credence v{__version__}")
         sys.exit(0)
 
     # Setup logging
@@ -140,7 +140,7 @@ def scan(
         )
 
     # Create scanner
-    scanner = GitExposeScanner(
+    scanner = CredenceScanner(
         timeout=timeout,
         concurrency=concurrency,
         user_agent=user_agent,

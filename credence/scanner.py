@@ -25,14 +25,14 @@ from .signatures import validate_response
 logger = logging.getLogger(__name__)
 
 
-class GitExposeScanner:
+class CredenceScanner:
     """Async scanner for exposed sensitive files."""
 
     def __init__(
         self,
         timeout: int = 10,
         concurrency: int = 50,
-        user_agent: str = "GitExpose/1.0 (Security Scanner)",
+        user_agent: str = "Credence/1.0 (Security Scanner)",
         follow_redirects: bool = False,
         paths: Optional[List[PathDefinition]] = None,
     ):

@@ -37,7 +37,7 @@ KNOWN_EXAMPLE_KEYS = frozenset({
 def normalize(value: str) -> str:
     """Normalise a secret for hashing: strip + URL-decode, preserve case.
 
-    URL-decoding makes GitExpose and TruffleHog (which URL-decodes extracted
+    URL-decoding makes Credence and TruffleHog (which URL-decodes extracted
     values) land on the same hash for the same logical secret, so cross-tool
     dedup via partialFingerprints works. This is intentionally lossy: two
     different raw encodings of the same secret hash identically.

@@ -9,7 +9,7 @@ from .. import __version__
 from ..models import ScanReport, ScanResult, Severity
 from .base import BaseReporter
 
-# Map GitExpose severity to SARIF level.
+# Map Credence severity to SARIF level.
 _LEVEL_MAP = {
     Severity.CRITICAL: "error",
     Severity.HIGH: "error",
@@ -37,9 +37,9 @@ class SARIFReporter(BaseReporter):
         return {
             "tool": {
                 "driver": {
-                    "name": "GitExpose",
+                    "name": "Credence",
                     "version": __version__,
-                    "informationUri": "https://github.com/fevra-dev/GitExpose",
+                    "informationUri": "https://github.com/fevra-dev/Credence",
                     "rules": rules,
                 }
             },

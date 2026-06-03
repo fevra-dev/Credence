@@ -76,8 +76,8 @@ venv.bak/
 *.csv
 *.html
 !docs/*.html
-!gitexpose/data/*.json
-!gitexpose/agent_exposure/data/*.json
+!credence/data/*.json
+!credence/agent_exposure/data/*.json
 !tests/fixtures/*.json
 !tests/fixtures/synthetic_repo/**/*.json
 !tests/fixtures/synthetic_repo/.continue/

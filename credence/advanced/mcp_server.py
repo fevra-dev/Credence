@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-GitExpose MCP (Model Context Protocol) Server
+Credence MCP (Model Context Protocol) Server
 
-Implements the Model Context Protocol to expose GitExpose as a set of
+Implements the Model Context Protocol to expose Credence as a set of
 callable tools for AI agents (Claude, GPT, etc.). This enables:
 
 - Autonomous security scanning by AI agents
 - Integration with AI-powered security workflows
 - Orchestration with other MCP-compatible tools (HexStrike AI pattern)
 
-The MCP server exposes GitExpose's capabilities as structured tools:
+The MCP server exposes Credence's capabilities as structured tools:
 - scan: Comprehensive web target scanning
 - git_dump: Exposed git repository reconstruction
 - secret_extract: Credential extraction and validation
@@ -18,7 +18,7 @@ The MCP server exposes GitExpose's capabilities as structured tools:
 - llm_exposure_scan: AI/LLM infrastructure detection
 - unicode_detect: Invisible Unicode detection
 
-Author: GitExpose Security Research
+Author: Credence Security Research
 """
 
 import asyncio
@@ -89,9 +89,9 @@ class MCPResponse:
     error: Optional[Dict[str, Any]] = None
 
 
-class GitExposeMCPServer:
+class CredenceMCPServer:
     """
-    MCP Server that exposes GitExpose tools to AI agents.
+    MCP Server that exposes Credence tools to AI agents.
     
     Implements JSON-RPC 2.0 over stdio for MCP communication.
     
@@ -114,7 +114,7 @@ class GitExposeMCPServer:
         self.tools: Dict[str, Callable] = {}
         self.tool_definitions: Dict[str, ToolDefinition] = {}
 
-        # Register all GitExpose tools
+        # Register all Credence tools
         self._register_tools()
 
     def _register_tools(self):
@@ -314,13 +314,13 @@ class GitExposeMCPServer:
         """Execute comprehensive scan"""
         try:
             # Import scanner (lazy import to avoid circular deps)
-            from .scanner import GitExposeScanner
+            from .scanner import CredenceScanner
 
             target = params["target"]
             concurrency = params.get("concurrency", 50)
             timeout = params.get("timeout", 10)
 
-            scanner = GitExposeScanner(concurrency=concurrency, timeout=timeout)
+            scanner = CredenceScanner(concurrency=concurrency, timeout=timeout)
             report = scanner.scan_sync([target])
 
             # Convert to dict
@@ -795,7 +795,7 @@ class GitExposeMCPServer:
 
     async def _handle_resources_list(self, request: MCPRequest) -> MCPResponse:
         """Handle resources/list request"""
-        # GitExpose doesn't expose resources, only tools
+        # Credence doesn't expose resources, only tools
         return MCPResponse(id=request.id, result={"resources": []})
 
     async def run_stdio(self):
@@ -863,7 +863,7 @@ class GitExposeMCPServer:
 
 def main():
     """Main entry point for MCP server"""
-    server = GitExposeMCPServer()
+    server = CredenceMCPServer()
     asyncio.run(server.run_stdio())
 
 

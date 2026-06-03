@@ -9,7 +9,7 @@ The React2Shell vulnerability exploits insecure deserialization in the React
 Flight protocol's reviveModel function, allowing unauthenticated RCE through
 a single crafted HTTP request.
 
-Author: GitExpose Security Research
+Author: Credence Security Research
 """
 
 import asyncio

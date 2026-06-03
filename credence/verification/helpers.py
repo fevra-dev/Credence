@@ -55,7 +55,7 @@ async def bearer_token_check(
         return VerificationResult(VerificationStatus.ERROR, "illegal-control-char")
 
     value = f"{scheme} {secret}" if scheme else secret
-    headers = {header: value, "User-Agent": "GitExpose-Verify/0.3"}
+    headers = {header: value, "User-Agent": "Credence-Verify/0.3"}
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.get(url, headers=headers)

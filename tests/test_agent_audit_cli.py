@@ -50,7 +50,7 @@ def test_agent_audit_sarif_output(tmp_path):
     result = CliRunner().invoke(cli, ["agent-audit", str(tmp_path), "-o", "sarif"])
     doc = json.loads(result.output)
     assert doc["version"] == "2.1.0"
-    assert doc["runs"][0]["tool"]["driver"]["name"] == "GitExpose"
+    assert doc["runs"][0]["tool"]["driver"]["name"] == "Credence"
     assert any(r["ruleId"].startswith("excessive_agent_capability")
                for r in doc["runs"][0]["results"])
     assert result.exit_code == 1   # findings => exit 1

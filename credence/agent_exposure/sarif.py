@@ -11,8 +11,8 @@ import json
 from typing import Dict, List
 
 _SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json"
-_INFO_URI = "https://github.com/fevra-dev/GitExpose"
-_TAXONOMY_NAME = "GitExpose-compliance"
+_INFO_URI = "https://github.com/fevra-dev/Credence"
+_TAXONOMY_NAME = "Credence-compliance"
 
 _LEVEL = {"CRITICAL": "error", "HIGH": "error", "MEDIUM": "warning",
           "LOW": "note", "INFO": "note"}
@@ -77,7 +77,7 @@ def to_sarif(findings: List[Dict], tool_version: str) -> str:
         "version": "2.1.0",
         "runs": [{
             "tool": {"driver": {
-                "name": "GitExpose",
+                "name": "Credence",
                 "version": tool_version,
                 "informationUri": _INFO_URI,
                 "rules": list(rules.values()),

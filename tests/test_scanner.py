@@ -3,17 +3,17 @@
 import re
 import pytest
 from aioresponses import aioresponses
-from credence.scanner import GitExposeScanner
+from credence.scanner import CredenceScanner
 from credence.models import Severity
 
 
 class TestScanner:
-    """Test GitExposeScanner."""
+    """Test CredenceScanner."""
 
     @pytest.mark.asyncio
     async def test_scan_detects_git_config(self):
         """Test that scanner detects exposed .git/config."""
-        scanner = GitExposeScanner(timeout=5, concurrency=10)
+        scanner = CredenceScanner(timeout=5, concurrency=10)
 
         with aioresponses() as mocked:
             # Mock all paths to return 404 except .git/config
@@ -52,7 +52,7 @@ class TestScanner:
 
     def test_target_normalization(self):
         """Test that targets are properly normalized."""
-        scanner = GitExposeScanner()
+        scanner = CredenceScanner()
 
         # This is tested implicitly through the scan -
         # we just verify the scanner can be created

@@ -1,4 +1,4 @@
-# Sample workflow: run GitExpose's local supply-chain scan against a repo's working
+# Sample workflow: run Credence's local supply-chain scan against a repo's working
 # tree on every PR and on push to main, uploading findings as a build artifact.
 #
 # NOTE: `supply-chain` emits console/json/cyclonedx/aibom — NOT SARIF. For SARIF →
@@ -6,7 +6,7 @@
 # SARIF reporter), or wait for supply-chain SARIF support. This sample uploads the
 # JSON findings as an artifact instead.
 
-name: GitExpose Supply Chain Scan
+name: Credence Supply Chain Scan
 on:
   pull_request:
     branches: [main]
@@ -28,25 +28,25 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install GitExpose
+      - name: Install Credence
         run: |
           python -m pip install --upgrade pip
           # `supply-chain` needs the `advanced` extra (local-filesystem scanner deps).
           # This repo's self-scan installs from the checkout; downstream users:
-          #   pip install "gitexpose[advanced]"
+          #   pip install "credence-scan[advanced]"
           pip install ".[advanced]"
 
       - name: Run supply-chain scan
         run: |
-          gitexpose supply-chain . \
+          credence supply-chain . \
             --offline \
             --output json \
-            --out-file gitexpose-results.json
+            --out-file credence-results.json
         continue-on-error: true  # findings (exit 1) shouldn't fail the sample job
 
       - name: Upload findings
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: gitexpose-results
-          path: gitexpose-results.json
+          name: credence-results
+          path: credence-results.json

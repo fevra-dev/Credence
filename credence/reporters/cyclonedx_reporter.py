@@ -28,7 +28,7 @@ from packageurl import PackageURL
 
 from ..supply_chain.models import Dependency
 
-_TOOL_NAME = "GitExpose"
+_TOOL_NAME = "Credence"
 _TOOL_VERSION = "0.5.1"
 
 

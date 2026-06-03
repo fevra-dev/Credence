@@ -1,8 +1,8 @@
-# GitExpose × MITRE ATLAS Coverage Map
+# Credence × MITRE ATLAS Coverage Map
 
 Last updated: v0.3
 
-This document maps every GitExpose detection to a MITRE ATLAS technique. ATLAS
+This document maps every Credence detection to a MITRE ATLAS technique. ATLAS
 (Adversarial Threat Landscape for Artificial-Intelligence Systems) is MITRE's
 adversary behavior knowledge base for AI/ML systems, modeled after ATT&CK.
 
@@ -43,7 +43,7 @@ Reference: https://atlas.mitre.org/
 
 ### Detection-only categories (no ATLAS mapping yet)
 
-These are GitExpose detections that don't yet map cleanly to ATLAS techniques.
+These are Credence detections that don't yet map cleanly to ATLAS techniques.
 Listed here for transparency.
 
 - Generic API key (catch-all entropy/pattern) — too broad for a specific
@@ -52,7 +52,7 @@ Listed here for transparency.
 - Private key (PEM) — could be many techniques depending on usage; left
   unmapped to avoid over-claiming.
 
-## How GitExpose surfaces ATLAS data
+## How Credence surfaces ATLAS data
 
 Every applicable finding includes an `atlas_technique` field. This is rendered:
 
@@ -67,7 +67,7 @@ Every applicable finding includes an `atlas_technique` field. This is rendered:
 - ATLAS is younger than ATT&CK and its technique list is evolving. Some of our
   mappings (`AML.T0019` → "Valid Accounts" reuse for LLM API keys) may be
   refined as ATLAS adds more specific techniques.
-- A single GitExpose finding may legitimately touch multiple ATLAS techniques;
+- A single Credence finding may legitimately touch multiple ATLAS techniques;
   we surface the single closest match to keep the model simple.
 - We do not currently auto-update from upstream ATLAS releases; the mapping is
-  refreshed manually on each GitExpose release.
+  refreshed manually on each Credence release.

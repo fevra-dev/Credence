@@ -1,14 +1,16 @@
-# GitExpose
+# Credence
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.8.1-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 
 **Exposure intelligence for the AI-infrastructure layer**
 
-*MCP configs, agent skills, git-metadata credentials, model/dataset pipelines, supply-chain risk — the artifacts general scanners treat as plain text. Built to run **alongside** TruffleHog/Gitleaks, not replace them.*
+*Finds and weighs leaked credentials, MCP and agent configs, git-metadata secrets, and supply-chain risk — and tells you which exposures to trust. The artifacts general scanners treat as plain text; built to run **alongside** them, not replace them.*
+
+<sub>Formerly **GitExpose** — renamed to Credence at v0.8.1. `pip install credence-scan`; the CLI is `credence` (the old `gitexpose` command still works as a deprecated alias for one release).</sub>
 
 [Features](#features) • [Installation](#installation) • [Quick Start](#quick-start) • [Coverage](docs/COVERAGE.md) • [Documentation](#documentation)
 
@@ -18,7 +20,7 @@
 
 ## Overview
 
-GitExpose finds exposed credentials, sensitive AI-infrastructure configs, and supply-chain compromise indicators across web targets and local repositories.
+Credence finds exposed credentials, sensitive AI-infrastructure configs, and supply-chain compromise indicators across web targets and local repositories.
 
 | Threat Category | What's Detected |
 |-----------------|-----------------|
@@ -46,11 +48,11 @@ November 2025, contained 844 MB of operational material: CI/CD logs,
 Kubernetes manifests, Terraform code, GitHub workflows, internal docs, AWS
 GovCloud admin credentials, and plaintext passwords for internal systems.
 
-This is the threat model GitExpose is built for. GitHub is the production
+This is the threat model Credence is built for. GitHub is the production
 perimeter, and one careless commit can publish keys, infrastructure maps, and
 operational secrets to attackers who never needed a zero-day.
 
-GitExpose v0.3 adds **active credential verification** — instead of just
+Credence v0.3 adds **active credential verification** — instead of just
 flagging that a string looks like an OpenAI key or an AWS access key, it
 confirms whether that credential is live by sending a low-footprint
 authentication check to the provider. Live keys get flagged as `verified-live`
@@ -71,12 +73,12 @@ References:
 - **Multiple outputs**: console, JSON, CSV, HTML, **SARIF 2.1.0**
 - **OWASP LLM + MITRE ATLAS metadata** on every finding
 
-### Credential Detection (`gitexpose ...`)
+### Credential Detection (`credence ...`)
 - 23-provider regex matrix with context-bound patterns where needed
-- Paired-secret cluster detection: when ≥2 distinct secret types appear in the same file, GitExpose emits a single CRITICAL `credential_cluster` finding
+- Paired-secret cluster detection: when ≥2 distinct secret types appear in the same file, Credence emits a single CRITICAL `credential_cluster` finding
 - Multi-provider-key file flagging: known aggregator paths (`OAI_CONFIG_LIST`, `litellm_config.yaml`, `.continue/agents/*.yaml`) get a CRITICAL multi-provider finding when ≥2 secret types are present
 
-### Local Supply-Chain Scanning (`gitexpose supply-chain <path>`)
+### Local Supply-Chain Scanning (`credence supply-chain <path>`)
 - Unpinned AI middleware (`litellm`, `langchain`, `openai`, etc.) flagged HIGH
 - Known-malicious package versions corpus (TeamPCP/LiteLLM, Telnyx, Xinference, etc.)
 - Slopsquatting detection — known LLM-hallucinated package names (USENIX 2025 research basis)
@@ -88,7 +90,7 @@ References:
 - **Malicious agent config payloads** — embedded `curl|bash`, `exec`/`eval` in CrewAI/AutoGen/litellm configs (CRITICAL)
 - **LangChain `lc-` key heuristic** — best-effort detection of LangChain-format credentials, motivated by CVE-2025-68664 (LangGrinch); treat as a high-signal lead requiring confirmation
 
-### Git History Scanning (`gitexpose git-history <path>`, v0.4)
+### Git History Scanning (`credence git-history <path>`, v0.4)
 - Scans **all reachable git history** (`git log -p --all --reverse`) for credentials committed and later removed
 - Full 29-provider credential matrix applied to every diff hunk
 - Each secret deduplicated and reported once at its **earliest-introducing commit** with SHA, author, and date
@@ -103,7 +105,7 @@ References:
 - Conservative by default: a consent banner names every destination host, concurrency is capped, and no raw secret is ever logged (canary-tested). Results surface as `verified` / `dead` / `error` and as `verified-live` SARIF tags for GitHub Code Scanning
 - Status surfaced across JSON, SARIF, HTML, CSV, and console output
 
-### Advanced Modules (in `gitexpose/advanced/`)
+### Advanced Modules (in `credence/advanced/`)
 - React2Shell detector (CVE-2025-55182)
 - ML model supply-chain scanner (pickle opcode analysis)
 - LLM/RAG infrastructure exposure scanner
@@ -119,8 +121,8 @@ References:
 
 ```bash
 # Clone repository
-git clone https://github.com/fevra-dev/GitExpose.git
-cd gitexpose
+git clone https://github.com/fevra-dev/Credence.git
+cd credence
 
 # Install with pip
 pip install -e .
@@ -141,88 +143,88 @@ pip install -e ".[advanced]"
 ### Basic Scan
 ```bash
 # Single target
-gitexpose example.com
+credence example.com
 
 # Multiple targets
-gitexpose example.com api.example.com
+credence example.com api.example.com
 
 # From file
-gitexpose -f targets.txt
+credence -f targets.txt
 ```
 
 ### Advanced Scans
 ```bash
 # Full security audit (all modules)
-gitexpose scan example.com --full-audit
+credence scan example.com --full-audit
 
 # React2Shell vulnerability check
-gitexpose react2shell https://nextjs-app.com
+credence react2shell https://nextjs-app.com
 
 # ML model supply chain scan
-gitexpose ml-scan https://api.example.com
+credence ml-scan https://api.example.com
 
 # LLM/AI infrastructure exposure
-gitexpose llm-scan https://ai-app.com
+credence llm-scan https://ai-app.com
 
 # Invisible Unicode detection
-gitexpose unicode-scan --file suspicious.js
+credence unicode-scan --file suspicious.js
 
 # Local supply-chain scan — now with live dependency SCA (OSV.dev, v0.5)
 # Parses lock files, queries OSV for live CVEs/GHSAs, ranks by exploitability.
-gitexpose supply-chain ./my-project
+credence supply-chain ./my-project
 
 # Air-gapped / offline: skip OSV, use the curated known-bad list only
-gitexpose supply-chain ./my-project --offline
+credence supply-chain ./my-project --offline
 
 # Export a CycloneDX 1.6 AI-BOM (components + dependency VEX + NTIA elements)
-gitexpose supply-chain ./my-project -o cyclonedx --out-file sbom.cdx.json
+credence supply-chain ./my-project -o cyclonedx --out-file sbom.cdx.json
 
 # Supply-chain scan with active credential verification (opt-in)
 # Sends a side-effect-free auth check to each provider; prints a consent banner.
-gitexpose supply-chain ./my-project --verify
+credence supply-chain ./my-project --verify
 
 # Verify only the highest-severity findings, with a tighter timeout
-gitexpose supply-chain ./my-project --verify --verify-only-severity HIGH --verify-timeout 3
+credence supply-chain ./my-project --verify --verify-only-severity HIGH --verify-timeout 3
 
 # Scan all git history for committed-then-removed secrets, and verify which are still live
-gitexpose git-history . --verify
+credence git-history . --verify
 
 # Audit AI-agent configs for excessive tool permissions + leaked system prompts (v0.6–v0.7)
 # Classifies MCP/permission grants + function-calling tool schemas against a
 # dangerous-capability taxonomy (OWASP LLM08).
-gitexpose agent-audit ./repo
-gitexpose agent-audit ./repo -o json --out-file agent-findings.json
+credence agent-audit ./repo
+credence agent-audit ./repo -o json --out-file agent-findings.json
 # Emit SARIF for GitHub Code Scanning (v0.7)
-gitexpose agent-audit ./repo -o sarif --out-file agent.sarif
+credence agent-audit ./repo -o sarif --out-file agent.sarif
 
 # v0.8: emit SARIF with cross-tool dedup fingerprints (partialFingerprints) and
 # the orphan cross-source signal — run alongside TruffleHog and dedup in Code Scanning.
-gitexpose supply-chain ./repo --output sarif --track --out-file supply.sarif
+credence supply-chain ./repo --output sarif --track --out-file supply.sarif
 
 # v0.8: only fail CI on HIGH/CRITICAL (the default); --fail-on info restores "any finding fails"
-gitexpose agent-audit ./repo --fail-on high
+credence agent-audit ./repo --fail-on high
 
-# Web scan: a bare target is shorthand for `gitexpose scan` (both run the web scanner)
-gitexpose example.com -o sarif
-gitexpose scan example.com -o sarif
+# Web scan: a bare target is shorthand for `credence scan` (both run the web scanner)
+credence example.com -o sarif
+credence scan example.com -o sarif
 
 # Multi-module aggregate sweep (react2shell + ml + llm + unicode + source-maps + cicd + api)
-gitexpose full-audit example.com --full-audit
+credence full-audit example.com --full-audit
 ```
 
 ### Output Formats
 ```bash
 # JSON output
-gitexpose example.com -o json --out-file results.json
+credence example.com -o json --out-file results.json
 
 # HTML report
-gitexpose scan example.com --full-audit -o html --out-file report.html
+credence scan example.com --full-audit -o html --out-file report.html
 
 # CSV for spreadsheets
-gitexpose -f targets.txt -o csv --out-file results.csv
+credence -f targets.txt -o csv --out-file results.csv
 
 # SARIF 2.1.0 (for GitHub Advanced Security, VS Code, etc.)
-gitexpose example.com -o sarif --out-file results.sarif
+credence example.com -o sarif --out-file results.sarif
 ```
 
 ---
@@ -232,7 +234,7 @@ gitexpose example.com -o sarif --out-file results.sarif
 ### React2Shell Detection (CVE-2025-55182)
 Detects the critical pre-auth RCE vulnerability affecting React Server Components:
 ```python
-from gitexpose.advanced import React2ShellDetector
+from credence.advanced import React2ShellDetector
 
 detector = React2ShellDetector(deep_scan=True)
 finding = await detector.scan("https://nextjs-app.com")
@@ -244,7 +246,7 @@ print(f"Risk Score: {finding.risk_score}/10.0")
 ### ML Model Supply Chain
 Scans for exposed models that could execute arbitrary code:
 ```python
-from gitexpose.advanced import MLModelScanner
+from credence.advanced import MLModelScanner
 
 scanner = MLModelScanner(deep_analysis=True)
 result = await scanner.scan("https://ml-api.com")
@@ -256,7 +258,7 @@ for model in result.exposed_models:
 ### MCP Server (AI Agent Integration)
 ```bash
 # Start MCP server for Claude/GPT integration
-gitexpose mcp
+credence mcp
 ```
 
 ---
@@ -281,8 +283,8 @@ See [docs/COVERAGE.md](docs/COVERAGE.md) for the full detection matrix.
 ## Project Structure
 
 ```
-gitexpose/
-├── gitexpose/
+credence/
+├── credence/
 │   ├── __init__.py          # Main package
 │   ├── cli.py               # CLI interface
 │   ├── scanner.py           # Core scanning engine

@@ -10,7 +10,7 @@ from typing import Set
 
 from .models import CapabilityClass, Grant
 
-# capability_class -> GitExpose severity bucket
+# capability_class -> Credence severity bucket
 BASE_SEVERITY = {
     CapabilityClass.SHELL_EXEC: "CRITICAL",
     CapabilityClass.CODE_EVAL: "HIGH",

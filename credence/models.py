@@ -1,5 +1,5 @@
 """
-Data models for GitExpose.
+Data models for Credence.
 
 Defines the core data structures used throughout the application.
 """

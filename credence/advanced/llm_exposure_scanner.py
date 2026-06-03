@@ -13,7 +13,7 @@ Detects exposed AI/LLM infrastructure including:
 This addresses a critical gap in security tooling as organizations
 rapidly deploy AI without adequate security controls.
 
-Author: GitExpose Security Research
+Author: Credence Security Research
 """
 
 import asyncio

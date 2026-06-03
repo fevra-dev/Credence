@@ -1,5 +1,5 @@
 """
-GitExpose Reporter Module
+Credence Reporter Module
 
 Output formatters for scan results:
 - Console: Colored terminal output

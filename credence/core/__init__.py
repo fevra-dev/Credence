@@ -1,5 +1,5 @@
 """
-GitExpose Core Module
+Credence Core Module
 
 Core scanning infrastructure and utilities.
 """

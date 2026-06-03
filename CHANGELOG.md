@@ -23,12 +23,12 @@ regression test. No false-positive regressions; the CVE-2025-41390 no-subprocess
   `https://TOKEN@host` tokens were missed.** Prefix set extended; a colon-less token-as-username branch
   flags LOW for manual review.
 - **git-config: `extraHeader` only matched `Basic`.** `Bearer <token>` / `token <token>` PATs are now detected.
-- **Orphan registry written world-readable (0644).** `~/.gitexpose/registry.json` (secret hashes + source
+- **Orphan registry written world-readable (0644).** `~/.credence/registry.json` (secret hashes + source
   file paths) is now created 0600 in a 0700 dir, umask-proof.
 
 ## v0.8.0 — 2026-06-02 — AI-Infra Layer, Deepened
 
-GitExpose v0.8 deepens the on-disk AI-infrastructure surface and is designed to **run alongside**
+Credence v0.8 deepens the on-disk AI-infrastructure surface and is designed to **run alongside**
 TruffleHog/Gitleaks rather than replace them — the SARIF `partialFingerprints` below are the
 mechanical proof (cross-tool dedup), and every new finding type is structural/high-precision.
 

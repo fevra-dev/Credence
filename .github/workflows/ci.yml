@@ -57,10 +57,10 @@ jobs:
           pip install ruff mypy
 
       - name: Lint with ruff
-        run: ruff check gitexpose/ --ignore E501,I001,F401,F841,W293 || true
+        run: ruff check credence/ --ignore E501,I001,F401,F841,W293 || true
 
       - name: Type check with mypy
-        run: mypy gitexpose/ --ignore-missing-imports --no-error-summary || true
+        run: mypy credence/ --ignore-missing-imports --no-error-summary || true
 
   security:
     runs-on: ubuntu-latest
@@ -78,7 +78,7 @@ jobs:
           pip install bandit safety
 
       - name: Security scan with Bandit
-        run: bandit -r gitexpose/ -ll --skip B101 || true
+        run: bandit -r credence/ -ll --skip B101 || true
 
       - name: Check dependencies with Safety
         run: |

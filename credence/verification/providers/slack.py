@@ -21,7 +21,7 @@ _URL = "https://slack.com/api/auth.test"
 async def verify(secret: str, *, timeout: float = 5.0) -> VerificationResult:
     headers = {
         "Authorization": f"Bearer {secret}",
-        "User-Agent": "GitExpose-Verify/0.3",
+        "User-Agent": "Credence-Verify/0.3",
     }
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:

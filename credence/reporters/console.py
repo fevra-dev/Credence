@@ -30,7 +30,7 @@ class ConsoleReporter(BaseReporter):
 
         if not self.quiet:
             lines.append("")
-            lines.append(click.style("🔍 GitExpose - Sensitive File Scanner", bold=True))
+            lines.append(click.style("🔍 Credence - Sensitive File Scanner", bold=True))
             lines.append("")
 
         # Process each target

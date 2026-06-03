@@ -1,8 +1,8 @@
-# GitExpose Detection Coverage
+# Credence Detection Coverage
 
 Last updated: v0.7
 
-GitExpose detects credential exposure across **23 providers** in 5 categories, plus supply-chain risk indicators specific to AI infrastructure, AI-agent exposure (excessive tool permissions + leaked system prompts), and — as of v0.8 — git-metadata credentials, agent debug-print leaks, MCP security posture scoring, and a cross-source orphan signal (see [AI-infra layer, deepened (v0.8)](#ai-infra-layer-deepened-v08)). Each finding carries OWASP LLM Top 10 (`attack_class`) and MITRE ATLAS technique (`atlas_technique`) metadata; agent-exposure findings additionally carry a MITRE ATT&CK technique (`mitre_attack`).
+Credence detects credential exposure across **23 providers** in 5 categories, plus supply-chain risk indicators specific to AI infrastructure, AI-agent exposure (excessive tool permissions + leaked system prompts), and — as of v0.8 — git-metadata credentials, agent debug-print leaks, MCP security posture scoring, and a cross-source orphan signal (see [AI-infra layer, deepened (v0.8)](#ai-infra-layer-deepened-v08)). Each finding carries OWASP LLM Top 10 (`attack_class`) and MITRE ATLAS technique (`atlas_technique`) metadata; agent-exposure findings additionally carry a MITRE ATT&CK technique (`mitre_attack`).
 
 ## Credential providers
 
@@ -114,7 +114,7 @@ Four new working-tree detections added to `supply-chain` scanning:
 
 ## AWS access+secret pairing (v0.4)
 
-When `supply-chain --verify` (or `git-history --verify`) detects both an `aws_access_key` and an `aws_secret_key` from the same source, GitExpose now pairs them and performs a live `sts:GetCallerIdentity` (SigV4) liveness check. Previously, AWS findings always surfaced as `error` at verification time because the secret component was unavailable. Pairing is applied automatically — no additional flags are required.
+When `supply-chain --verify` (or `git-history --verify`) detects both an `aws_access_key` and an `aws_secret_key` from the same source, Credence now pairs them and performs a live `sts:GetCallerIdentity` (SigV4) liveness check. Previously, AWS findings always surfaced as `error` at verification time because the secret component was unavailable. Pairing is applied automatically — no additional flags are required.
 
 ## Live dependency SCA (v0.5)
 
@@ -133,7 +133,7 @@ Findings are ranked by **exploitability context** (credential-co-presence → kn
 
 ## AI agent exposure (v0.6–v0.7)
 
-`gitexpose agent-audit <path>` judges *what an AI agent is allowed to do* and detects committed/leaked system prompts. Pure static analysis — no network calls.
+`credence agent-audit <path>` judges *what an AI agent is allowed to do* and detects committed/leaked system prompts. Pure static analysis — no network calls.
 
 **Grant sources parsed** (via pluggable adapters — filename dispatch + v0.7 shape dispatch):
 
@@ -165,7 +165,7 @@ Findings are ranked by **exploitability context** (credential-co-presence → kn
 | `excessive_agent_capability` | per taxonomy (CRITICAL/HIGH/MEDIUM) | An agent is granted a dangerous tool/capability. OWASP **LLM08** Excessive Agency; ATLAS **AML.T0053** AI Agent Tool Invocation; per-class `mitre_attack`. |
 | `exposed_system_prompt` | HIGH | Committed text matches a CL4R1T4S known-leaked system prompt (shingle-fingerprint overlap; hashes only, no prompt text vendored). OWASP **LLM07** System Prompt Leakage; ATLAS **AML.T0056** LLM Meta Prompt Extraction; `mitre_attack: T1552.001`. |
 
-The fingerprint seed (`gitexpose/agent_exposure/data/cl4r1t4s_fingerprints.json`) ships empty-but-valid; expand it offline with `scripts/build_cl4r1t4s_fingerprints.py` against a local CL4R1T4S checkout.
+The fingerprint seed (`credence/agent_exposure/data/cl4r1t4s_fingerprints.json`) ships empty-but-valid; expand it offline with `scripts/build_cl4r1t4s_fingerprints.py` against a local CL4R1T4S checkout.
 
 ## AI-infra layer, deepened (v0.8)
 
@@ -200,7 +200,7 @@ The fingerprint seed (`gitexpose/agent_exposure/data/cl4r1t4s_fingerprints.json`
 
 ## Empirical AI-tool config paths (v0.2)
 
-GitExpose scans for these paths during URL/HTTP scans (where the path is exposed) and during local filesystem scans:
+Credence scans for these paths during URL/HTTP scans (where the path is exposed) and during local filesystem scans:
 
 - `.continue/`, `.continue/agents/*.yaml`, `.continue/config.yaml`
 - `claude/.credentials.json`
@@ -215,7 +215,7 @@ GitExpose scans for these paths during URL/HTTP scans (where the path is exposed
 
 ## Git history scanning (v0.4)
 
-`gitexpose git-history <path>` scans **all reachable commits** (`git log -p --all --reverse`) for credentials that were committed and later removed — secrets that no longer appear in the working tree but remain accessible in repository history and may still be live.
+`credence git-history <path>` scans **all reachable commits** (`git log -p --all --reverse`) for credentials that were committed and later removed — secrets that no longer appear in the working tree but remain accessible in repository history and may still be live.
 
 Key behaviours:
 

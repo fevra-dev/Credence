@@ -1,4 +1,4 @@
-"""git-history secret scanning for GitExpose v0.4.
+"""git-history secret scanning for Credence v0.4.
 
 Streams `git log -p` over all reachable commits, runs SecretExtractor over added
 lines, and reports each secret once (at its earliest-introducing commit) with

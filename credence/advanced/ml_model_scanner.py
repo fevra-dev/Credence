@@ -15,7 +15,7 @@ Key Threats Addressed:
 Based on research: "nullifAI" campaign, broken Pickle format evasion, and
 the broader AI/ML supply chain attack surface.
 
-Author: GitExpose Security Research
+Author: Credence Security Research
 """
 
 import asyncio

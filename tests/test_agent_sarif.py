@@ -26,7 +26,7 @@ def test_to_sarif_is_valid_sarif_210():
     doc = json.loads(to_sarif(_FINDINGS, "0.7.0"))
     assert doc["version"] == "2.1.0"
     assert "$schema" in doc
-    assert doc["runs"][0]["tool"]["driver"]["name"] == "GitExpose"
+    assert doc["runs"][0]["tool"]["driver"]["name"] == "Credence"
     assert doc["runs"][0]["tool"]["driver"]["version"] == "0.7.0"
 
 

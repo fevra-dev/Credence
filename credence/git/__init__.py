@@ -1,5 +1,5 @@
 """
-GitExpose Git Repository Analysis Module
+Credence Git Repository Analysis Module
 
 Tools for downloading and analyzing exposed .git repositories:
 - Git Dumper: Reconstruct exposed repositories
