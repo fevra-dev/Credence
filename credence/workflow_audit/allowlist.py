@@ -28,7 +28,7 @@ _INSTALLER_HOSTS = {
 
 _SUPPRESS_RE = re.compile(
     r"#\s*credence:ignore\s+(?P<rule>[A-Z]+-[A-Z]+-\d+)"
-    r"(?:\s+reason=(?P<reason>.+))?\s*$"
+    r"(?:\s+reason=(?P<reason>.*))?\s*$"
 )
 
 
@@ -59,6 +59,6 @@ def parse_suppressions(text: str) -> List[Suppression]:
             out.append(Suppression(
                 rule_id=m.group("rule"),
                 line=i,
-                reason=(reason.strip() if reason else None),
+                reason=(reason.strip() if reason is not None else None),
             ))
     return out

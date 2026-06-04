@@ -36,3 +36,12 @@ def test_parse_suppressions_extracts_rule_line_reason():
 
 def test_parse_suppressions_ignores_unrelated_comments():
     assert parse_suppressions("run: echo hi  # just a note") == []
+
+
+def test_parse_suppressions_empty_reason_kept():
+    # An empty reason= value must not cause the whole suppression to be dropped
+    text = "run: whatever  # credence:ignore WF-CFG-003 reason="
+    sup = parse_suppressions(text)
+    assert len(sup) == 1, f"Expected 1 suppression, got {len(sup)}: {sup}"
+    assert sup[0].rule_id == "WF-CFG-003"
+    assert sup[0].reason == "", f"Expected empty string, got {sup[0].reason!r}"

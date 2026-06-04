@@ -10,7 +10,7 @@ import re
 import unicodedata
 
 # ${IFS}, $IFS, ${IFS:0:1} style splitters → a single space
-_IFS_RE = re.compile(r"\$\{IFS[^}]*\}|\$IFS")
+_IFS_RE = re.compile(r"\$\{IFS[^}]*\}|\$IFS\b")
 _LINE_CONT_RE = re.compile(r"\\\r?\n")
 # zero-width / bidi / invisible separators
 _INVISIBLE = "".join(chr(c) for c in (

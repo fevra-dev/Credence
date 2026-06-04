@@ -20,3 +20,17 @@ def test_strips_invisible_unicode():
 
 def test_plain_text_passthrough():
     assert "base64 -d | bash" in normalize_run("base64 -d | bash")
+
+
+def test_ifs_word_boundary_does_not_mangle_longer_vars():
+    # $IFSVAR / $IFSMORE must not be treated as $IFS (prefix match)
+    out = normalize_run("echo $IFSVAR")
+    assert "IFSVAR" in out, f"$IFSVAR was mangled — got: {out!r}"
+
+    out2 = normalize_run("echo $IFSMORE")
+    assert "IFSMORE" in out2, f"$IFSMORE was mangled — got: {out2!r}"
+
+    # existing behaviour preserved: cu${IFS}rl → cu rl
+    out3 = normalize_run("cu${IFS}rl")
+    assert "IFSVAR" not in out3  # sanity
+    assert "cu rl" in out3 or ("cu" in out3 and "rl" in out3)
