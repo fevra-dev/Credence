@@ -14,6 +14,10 @@ import yaml
 
 from .models import Job, Step, Workflow
 
+# Sentinel used in _build_job / parse_workflow to distinguish an absent
+# `permissions:` key from an explicit `permissions: null`.
+_ABSENT = object()
+
 
 def _norm_events(on_value: Any) -> List[str]:
     if on_value is None:
@@ -66,9 +70,6 @@ def _build_job(job_id: str, raw: Any) -> Job:
     return job
 
 
-_ABSENT = object()
-
-
 def parse_workflow(text: str, path: str) -> Workflow:
     wf = Workflow(path=path, raw_text=text)
     try:
@@ -97,7 +98,11 @@ def parse_workflow(text: str, path: str) -> Workflow:
 
 
 _LOCAL_SCRIPT_RE = re.compile(
-    r"(?:^|\s|;|&&|\|\|)\s*(?:bash|sh|source|\.)?\s*(\./[\w./-]+|[\w./-]+\.sh)\b"
+    # The interpreter-prefix group uses \.(?!/) so a bare dot is only consumed as
+    # a `source`-alias when it is NOT followed by `/`.  Without the lookahead the
+    # optional `\.` would eat the leading `.` of `./script.sh` after a chained
+    # operator (&&, ||, ;), producing a spurious `/script.sh` capture.
+    r"(?:^|\s|;|&&|\|\|)\s*(?:bash|sh|source|\.(?!/))?\s*(\./[\w./-]+|[\w./-]+\.sh)\b"
 )
 
 
@@ -130,6 +135,8 @@ def run_script_refs(run_text: str) -> List[str]:
         ref = m.group(1)
         if "://" in ref:
             continue
+        if ref.startswith("/"):
+            continue  # absolute paths are never repo-local refs
         if ref.endswith(".sh") or ref.startswith("./"):
             refs.append(ref)
     return refs

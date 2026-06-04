@@ -88,3 +88,17 @@ def test_run_script_refs_finds_local_script_invocations():
 def test_run_script_refs_ignores_remote_and_inline():
     assert run_script_refs("curl https://x | bash") == []
     assert run_script_refs("echo hello") == []
+
+
+def test_run_script_refs_handles_chained_operators():
+    # Bug: optional `(?:bash|sh|source|\.)?` prefix was consuming the leading `.`
+    # of `./script.sh` when a separator immediately preceded it, yielding `/second.sh`.
+    refs = run_script_refs("bash ./first.sh && ./second.sh")
+    assert "./first.sh" in refs
+    assert "./second.sh" in refs
+    assert not any(r.startswith("/") for r in refs), f"Bare absolute path captured: {refs}"
+
+    refs2 = run_script_refs("./setup.sh || ./fallback.sh")
+    assert "./setup.sh" in refs2
+    assert "./fallback.sh" in refs2
+    assert not any(r.startswith("/") for r in refs2), f"Bare absolute path captured: {refs2}"

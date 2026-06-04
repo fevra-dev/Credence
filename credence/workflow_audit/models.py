@@ -48,6 +48,9 @@ class Job:
     job_id: str
     runs_on: Any = None              # str | list | None
     permissions: Any = None          # dict | "write-all" | "read-all" | None
+                                   # NOTE: None can mean either absent or an explicit
+                                   # `permissions: null`; use `permissions_absent` to
+                                   # distinguish the two cases.
     permissions_absent: bool = True
     env: Dict[str, str] = field(default_factory=dict)
     steps: List[Step] = field(default_factory=list)
