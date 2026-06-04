@@ -1,4 +1,4 @@
-from credence.workflow_audit.parser import parse_workflow
+from credence.workflow_audit.parser import parse_workflow, parse_action, run_script_refs
 
 
 GOOD = """
@@ -57,3 +57,34 @@ def test_permissions_absent_flag():
                         path="x")
     assert wf.permissions_absent is True
     assert wf.jobs[0].permissions_absent is True
+
+
+COMPOSITE = """
+name: build-action
+runs:
+  using: composite
+  steps:
+    - run: echo "${{ inputs.token }}" | base64 -d | bash
+      shell: bash
+"""
+
+
+def test_parse_action_returns_composite_workflow_with_steps():
+    wf = parse_action(COMPOSITE, path=".github/actions/build/action.yml")
+    assert wf.is_composite_action is True
+    assert wf.parse_ok is True
+    # composite steps are surfaced as a single synthetic job "runs"
+    assert wf.jobs[0].job_id == "runs"
+    assert "base64 -d" in wf.jobs[0].steps[0].run
+
+
+def test_run_script_refs_finds_local_script_invocations():
+    run = "bash ./scripts/build.sh\n./tools/deploy"
+    refs = run_script_refs(run)
+    assert "./scripts/build.sh" in refs
+    assert "./tools/deploy" in refs
+
+
+def test_run_script_refs_ignores_remote_and_inline():
+    assert run_script_refs("curl https://x | bash") == []
+    assert run_script_refs("echo hello") == []

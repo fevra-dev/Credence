@@ -7,6 +7,7 @@ line-scan and emit a fail-loud finding rather than silently skipping).
 
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Optional
 
 import yaml
@@ -93,3 +94,42 @@ def parse_workflow(text: str, path: str) -> Workflow:
     if isinstance(jobs, dict):
         wf.jobs = [_build_job(str(jid), jraw) for jid, jraw in jobs.items()]
     return wf
+
+
+_LOCAL_SCRIPT_RE = re.compile(
+    r"(?:^|\s|;|&&|\|\|)\s*(?:bash|sh|source|\.)?\s*(\./[\w./-]+|[\w./-]+\.sh)\b"
+)
+
+
+def parse_action(text: str, path: str) -> Workflow:
+    """Parse a composite action.yml; surface runs.steps as a synthetic 'runs' job."""
+    wf = Workflow(path=path, raw_text=text, is_composite_action=True)
+    try:
+        data = yaml.safe_load(text)
+    except yaml.YAMLError:
+        wf.parse_ok = False
+        return wf
+    if not isinstance(data, dict):
+        wf.parse_ok = False
+        return wf
+    wf.name = (str(data["name"]) if data.get("name") is not None else None)
+    runs = data.get("runs")
+    if isinstance(runs, dict) and isinstance(runs.get("steps"), list):
+        job = Job(job_id="runs")
+        job.steps = [_build_step(i, s) for i, s in enumerate(runs["steps"])]
+        wf.jobs = [job]
+    return wf
+
+
+def run_script_refs(run_text: str) -> List[str]:
+    """Return repo-local script paths invoked from a run block (not remote URLs)."""
+    if not run_text:
+        return []
+    refs: List[str] = []
+    for m in _LOCAL_SCRIPT_RE.finditer(run_text):
+        ref = m.group(1)
+        if "://" in ref:
+            continue
+        if ref.endswith(".sh") or ref.startswith("./"):
+            refs.append(ref)
+    return refs
