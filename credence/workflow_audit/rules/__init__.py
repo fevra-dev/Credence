@@ -71,3 +71,8 @@ def run_rules(wf: Workflow, resolved: Dict[str, List[ResolvedStep]],
     for fn in RULES:
         findings.extend(fn(wf, resolved, ctx))
     return apply_suppressions(findings, ctx)
+
+
+# Import rule modules for their @register side effects. Keep at bottom to avoid
+# circular imports (modules import make_finding/register from this package).
+from . import exec_rules, exfil_rules, inject_rules, config_rules  # noqa: E402,F401

