@@ -102,3 +102,26 @@ def test_run_script_refs_handles_chained_operators():
     assert "./setup.sh" in refs2
     assert "./fallback.sh" in refs2
     assert not any(r.startswith("/") for r in refs2), f"Bare absolute path captured: {refs2}"
+
+
+def test_steps_and_jobs_carry_line_numbers():
+    text = (
+        "on: push\n"            # line 1
+        "jobs:\n"               # line 2
+        "  build:\n"            # line 3
+        "    runs-on: x\n"      # line 4
+        "    steps:\n"          # line 5
+        "      - run: echo a\n"  # line 6
+        "      - run: echo b\n"  # line 7
+    )
+    wf = parse_workflow(text, path="x")
+    assert wf.jobs[0].line == 3
+    assert wf.jobs[0].steps[0].line == 6
+    assert wf.jobs[0].steps[1].line == 7
+
+
+def test_line_key_not_leaked_into_env_maps():
+    wf = parse_workflow(
+        "on: push\njobs:\n  a:\n    runs-on: x\n    env:\n      K: v\n    steps: []",
+        path="x")
+    assert wf.jobs[0].env == {"K": "v"}   # no __line__ key
