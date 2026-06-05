@@ -57,3 +57,37 @@ def wf_exfil_001(wf: Workflow, resolved: Dict[str, List[ResolvedStep]],
                 ))
                 break  # one finding per step is enough
     return out
+
+
+_ENV_DUMP_RE = re.compile(r"\b(env|printenv|set)\b[^\n|]*\|\s*(curl|wget|nc)\b")
+_ECHO_SECRET_RE = re.compile(
+    r"\becho\b[^\n]*(\$\{\{\s*secrets\.[A-Za-z0-9_-]+\s*\}\})")
+
+
+@register
+def wf_exfil_002(wf: Workflow, resolved: Dict[str, List[ResolvedStep]],
+                 ctx: RuleContext) -> Iterable:
+    out: List = []
+    for job_id, steps in resolved.items():
+        for rs in steps:
+            run = rs.normalized_run
+            why = None
+            if _ENV_DUMP_RE.search(run):
+                why = "Environment dumped to an outbound call"
+            elif _ECHO_SECRET_RE.search(run):
+                why = "Secret echoed to the build log"
+            else:
+                for var in rs.secret_vars:
+                    if re.search(rf"\becho\b[^\n]*\$\{{?{re.escape(var)}\b", run):
+                        why = "Secret-tainted variable echoed to the build log"
+                        break
+            if why:
+                out.append(make_finding(
+                    "WF-EXFIL-002", "Environment/secret dump", Severity.HIGH,
+                    Confidence.HIGH, file_path=wf.path, message=why, job=job_id,
+                    step_index=rs.step.index, step_name=rs.step.name,
+                    line=rs.step.line, snippet=run[:200],
+                    cicd_sec=["CICD-SEC-6"], mitre=["T1552", "T1567"],
+                    remediation="Never print secrets/env to logs or pipe env to the network.",
+                ))
+    return out
