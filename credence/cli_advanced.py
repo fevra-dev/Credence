@@ -804,6 +804,9 @@ def list_tools():
         ("unicode-scan", "Invisible Unicode detection", "GlassWorm patterns"),
         ("mcp", "Start MCP server", "For AI agent integration"),
         ("supply-chain", "Local-filesystem scan for supply-chain risks (TeamPCP-class)", "--output json"),
+        ("agent-audit", "AI-agent config audit for excessive tool permissions", "--output sarif"),
+        ("workflow-audit", "GitHub Actions poisoned-pipeline detection (tree + history)", "--fail-on high"),
+        ("git-history", "Credential scan across all git history", "--verify"),
     ]
 
     if RICH_AVAILABLE:
@@ -1080,6 +1083,67 @@ def agent_audit(path: str, output: str, out_file: str, max_bytes: int, fail_on: 
         click.echo(text)
 
     sys.exit(exit_code_for(findings, fail_on))
+
+
+@cli.command("workflow-audit")
+@click.argument("path", type=click.Path(exists=True, file_okay=False, dir_okay=True),
+                default=".")
+@click.option("--no-history", is_flag=True, default=False,
+              help="Skip the git-history pass (working-tree only).")
+@click.option("--include-unreachable", is_flag=True, default=False,
+              help="Also scan dangling/reflog commits (deleted branches).")
+@click.option("--since", default=None, metavar="DATE",
+              help="Only history commits after DATE (passthrough to git log).")
+@click.option("--max-commits", type=int, default=None, metavar="N",
+              help="Cap the number of history commits scanned.")
+@click.option("--allow-host", "allow_host", multiple=True, metavar="HOST",
+              help="Treat HOST as a trusted egress host (repeatable).")
+@click.option("--disable-rule", "disable_rule", multiple=True, metavar="RULE_ID",
+              help="Disable a rule by ID (repeatable).")
+@click.option("--format", "fmt",
+              type=click.Choice(["text", "json", "sarif"]), default="text",
+              help="Output format [default: text].")
+@click.option("-o", "--out-file", "out_file", type=click.Path(), default=None,
+              help="Write output to file instead of stdout.")
+@click.option("--count-suppressed", is_flag=True, default=False,
+              help="Re-arm suppressed findings for the --fail-on gate.")
+@add_fail_on_arg
+def workflow_audit(path: str, no_history: bool, include_unreachable: bool,
+                   since: str, max_commits: int, allow_host, disable_rule,
+                   fmt: str, out_file: str, count_suppressed: bool, fail_on: str):
+    """Audit GitHub Actions workflows (working tree + git history) for poisoned-pipeline threats."""
+    from .workflow_audit.scan import scan as _wf_scan
+    from .workflow_audit.report import render_report
+    from .workflow_audit.sarif import to_sarif
+
+    findings = _wf_scan(
+        path,
+        history=not no_history,
+        include_unreachable=include_unreachable,
+        since=since,
+        max_commits=max_commits,
+        extra_hosts=set(allow_host or []),
+    )
+
+    if disable_rule:
+        disabled = set(disable_rule)
+        findings = [f for f in findings if f["rule_id"] not in disabled]
+
+    if fmt == "json":
+        text = json.dumps(findings, indent=2)
+    elif fmt == "sarif":
+        text = to_sarif(findings)
+    else:
+        text = render_report(findings)
+
+    if out_file:
+        Path(out_file).write_text(text)
+    else:
+        click.echo(text)
+
+    gating = [f for f in findings
+              if not f.get("suppressed") or count_suppressed]
+    sys.exit(exit_code_for(gating, fail_on))
 
 
 @cli.command("git-history")

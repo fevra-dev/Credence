@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.9.0] — 2026-06-05 — Workflow-Threat Engine
+
+### Added
+- `workflow-audit` command: GitHub Actions poisoned-pipeline detection over the
+  working tree AND git history (incl. dangling commits via `--include-unreachable`).
+  13 combination rules (obfuscated exec, secret exfil, script injection, blast
+  radius) mapped to OWASP CICD-SEC + MITRE ATT&CK; job-scoped secret→sink taint;
+  visible-only suppression; identity-as-context on history findings; text/JSON/SARIF;
+  shared `--fail-on` gate; wired into `full-audit`. Zero network egress.
+- **IFS-obfuscation detection** (`cu${IFS}rl` → `curl` compaction in shellutil) so
+  rule matching pierces `${IFS}` word-splitting evasion before sink classification.
+- `WF-HIST-001` finding: malicious pipeline persists in git history after working-tree
+  deletion (deletion ≠ erasure). Fires for HIGH/CRITICAL content rules on files no
+  longer present in the working tree.
+- Identity-as-context flags on history findings: `author_committer_mismatch`,
+  `first_time_contributor_touching_workflows`, `bot_authored_content_change`.
+- Dedup-to-earliest-commit for history findings; `--include-unreachable` sweeps
+  dangling commits and reflog entries (F-006).
+
 ## v0.8.1 — 2026-06-03 — Detection-evasion hardening (security audit fixes)
 
 Post-v0.8.0 adversarial audit (`/attack` over the 5 new detection modules) found and fixed six

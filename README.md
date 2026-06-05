@@ -58,6 +58,7 @@ That is the threat model. GitHub is the production perimeter, and one careless c
 | **AI-BOM** | CycloneDX 1.6 security BOM with dependency VEX (honestly scoped) and NTIA minimum elements | v0.5 |
 | **AI agent exposure** (`agent-audit`) | Flags over-permissioned agents — MCP shell/exec wiring, `.claude` grants like `Bash(*)`, function-calling tool schemas, exfil-capable capability chains; detects leaked system prompts | v0.6–v0.7 |
 | **AI-infra layer, deepened** | Git-metadata credentials · agent debug-print leaks (AST) · MCP posture score (0–100) · orphan cross-source signal · `--fail-on` severity gate | v0.8 |
+| **Workflow-threat engine** (`workflow-audit`) | 13 rules for GitHub Actions poisoned-pipeline patterns — runtime-decoded exec, secret exfil, `$GITHUB_ENV` injection, blast-radius (self-hosted/artipacked/secrets-inherit) — scanned over the working tree **and** full git history; `--include-unreachable` sweeps dangling commits; identity-as-context; SARIF 2.1.0 | v0.9 |
 | **Compliance metadata** | OWASP LLM Top 10 + MITRE ATLAS + MITRE ATT&CK technique on **every** finding | v0.2+ |
 | **Outputs** | console · JSON · CSV · HTML · **SARIF 2.1.0** (GitHub Code Scanning) · CycloneDX | — |
 
@@ -97,8 +98,24 @@ credence supply-chain ./my-project --verify           # confirm which creds are 
 # Audit AI-agent configs — excessive permissions, MCP posture, leaked prompts
 credence agent-audit ./my-project
 
+# Audit GitHub Actions workflows for poisoned-pipeline threats (working tree + history)
+credence workflow-audit ./my-project
+
 # Scan all git history for committed-then-removed secrets, verify which are still live
 credence git-history . --verify
+```
+
+**v0.9 highlights**
+
+```bash
+# Detect poisoned pipelines in working tree + full git history (deletion ≠ erasure)
+credence workflow-audit ./repo
+
+# Include dangling/deleted-branch commits; export SARIF for GitHub Code Scanning
+credence workflow-audit ./repo --include-unreachable --format sarif -o workflow.sarif
+
+# CI gate: exits 1 on HIGH/CRITICAL workflow threats; trust known CDN egress
+credence workflow-audit ./repo --allow-host cdn.example.com --fail-on high
 ```
 
 **v0.8 highlights**
