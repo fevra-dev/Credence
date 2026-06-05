@@ -29,7 +29,7 @@ Usage:
     from credence.secrets import SecretExtractor
 """
 
-__version__ = "0.8.1"
+__version__ = "0.9.0"
 __author__ = "Credence Contributors"
 __license__ = "MIT"
 
