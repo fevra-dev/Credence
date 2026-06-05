@@ -804,6 +804,9 @@ def list_tools():
         ("unicode-scan", "Invisible Unicode detection", "GlassWorm patterns"),
         ("mcp", "Start MCP server", "For AI agent integration"),
         ("supply-chain", "Local-filesystem scan for supply-chain risks (TeamPCP-class)", "--output json"),
+        ("agent-audit", "AI-agent config audit for excessive tool permissions", "--output sarif"),
+        ("workflow-audit", "GitHub Actions poisoned-pipeline detection (tree + history)", "--fail-on high"),
+        ("git-history", "Credential scan across all git history", "--verify"),
     ]
 
     if RICH_AVAILABLE:
