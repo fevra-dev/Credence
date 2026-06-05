@@ -94,3 +94,26 @@ def test_persists_in_history_only_when_file_gone_from_working_tree(repo):
     hist = [f for f in findings if f.rule_id == "WF-HIST-001"]
     assert hist and hist[0].persists_in_history_only is True
     assert hist[0].severity.value in ("HIGH", "CRITICAL")
+
+
+def _has_master(repo):
+    out = subprocess.run(["git", "-C", str(repo), "branch", "--format=%(refname:short)"],
+                         capture_output=True, text=True)
+    return "master" in out.stdout.split()
+
+
+def test_unreachable_commit_on_deleted_branch_found_only_with_flag(repo):
+    _write_commit(repo, "README.md", "base")
+    # malicious workflow on a feature branch, then delete the branch -> unreachable
+    _git(repo, "checkout", "-q", "-b", "feature")
+    _write_commit(repo, ".github/workflows/evil.yml", MALICIOUS)
+    if _has_master(repo):
+        _git(repo, "checkout", "-q", "master")
+    else:
+        _git(repo, "checkout", "-q", "main")
+    _git(repo, "branch", "-q", "-D", "feature")
+
+    assert scan_history(repo) == [] or all(
+        f.rule_id != "WF-EXFIL-001" for f in scan_history(repo))
+    found = scan_history(repo, include_unreachable=True)
+    assert any(f.rule_id == "WF-EXFIL-001" for f in found)
