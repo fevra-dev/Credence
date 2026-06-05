@@ -19,6 +19,29 @@ _SHELLS = ("bash", "sh", "zsh", "dash")
 _HTTP_TOOLS = ("curl", "wget")
 _DNS_TOOLS = ("nslookup", "dig", "host")
 
+# Tool names that IFS-substitution can split into adjacent fragments
+# e.g. cu${IFS}rl → normalize → "cu rl"; compact it back to "curl"
+_IFS_SPLIT_TOOLS = ("curl", "wget", "bash", "base64", "python", "python3",
+                    "nslookup", "wget")
+
+
+def _compact_ifs_tools(text: str) -> str:
+    """Collapse IFS-space-split tool fragments back to their full name.
+
+    After normalize_run(), `cu${IFS}rl` becomes `cu rl`. This function
+    re-joins any pair of adjacent word-only tokens whose concatenation
+    matches a known sensitive tool name, so sink-detection regexes see `curl`
+    not `cu rl`.  Operates on a copy; does not mutate normalize_run output.
+    """
+    for tool in _IFS_SPLIT_TOOLS:
+        # Match all splits: (prefix)(single-space)(suffix) where prefix+suffix == tool
+        for split_at in range(1, len(tool)):
+            prefix, suffix = tool[:split_at], tool[split_at:]
+            # word-boundary: prefix at start of word, suffix followed by non-word-char
+            pattern = rf"\b{re.escape(prefix)} {re.escape(suffix)}\b"
+            text = re.sub(pattern, tool, text)
+    return text
+
 
 def _pipes_to_shell(text: str) -> bool:
     return any(re.search(rf"\|\s*{s}\b", text) for s in _SHELLS)
@@ -27,6 +50,7 @@ def _pipes_to_shell(text: str) -> bool:
 def has_decode_to_shell(run: str) -> bool:
     if not run:
         return False
+    run = _compact_ifs_tools(run)
     low = run.lower()
     if any(d in low for d in _DECODERS):
         if _pipes_to_shell(low):
@@ -40,7 +64,8 @@ def has_decode_to_shell(run: str) -> bool:
 
 def remote_pipe_to_shell(run: str):
     """If a curl/wget output is piped to a shell, return its host (or None if dynamic)."""
-    low = (run or "").lower()
+    run = _compact_ifs_tools(run or "")
+    low = run.lower()
     if not any(re.search(rf"\b{t}\b", low) for t in _HTTP_TOOLS):
         return None
     if not _pipes_to_shell(low):
@@ -52,7 +77,9 @@ def remote_pipe_to_shell(run: str):
 def outbound_sinks(run: str) -> List[Dict]:
     """Return outbound network sinks: {tool, host, dynamic, dns}."""
     sinks: List[Dict] = []
-    low = (run or "").lower()
+    # Compact IFS-split tool names (e.g. "cu rl" → "curl") before matching.
+    run = _compact_ifs_tools(run or "")
+    low = run.lower()
     for t in _HTTP_TOOLS:
         if re.search(rf"\b{t}\b", low):
             m = re.search(r"https?://([^\s/\"'|]+)", run)
