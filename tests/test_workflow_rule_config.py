@@ -72,3 +72,39 @@ def test_cfg_003_first_party_action_clean():
                "      - uses: actions/checkout@v4")
     # actions/* and github/* are first-party; @tag is Low, not flagged at default
     assert all(f.severity.value != "MEDIUM" for f in out)
+
+
+def test_cfg_004_self_hosted_on_pr_target():
+    out = _run(cfg.wf_cfg_004,
+               "on: pull_request_target\njobs:\n  b:\n    runs-on: self-hosted\n    steps: []")
+    assert any(f.rule_id == "WF-CFG-004" for f in out)
+
+
+def test_cfg_004_self_hosted_on_push_clean():
+    out = _run(cfg.wf_cfg_004,
+               "on: push\njobs:\n  b:\n    runs-on: self-hosted\n    steps: []")
+    assert out == []
+
+
+def test_cfg_005_artipacked_checkout_then_upload():
+    text = ("on: push\njobs:\n  b:\n    runs-on: x\n    steps:\n"
+            "      - uses: actions/checkout@v4\n"
+            "      - uses: actions/upload-artifact@v4\n"
+            "        with:\n          path: .\n")
+    out = _run(cfg.wf_cfg_005, text)
+    assert any(f.rule_id == "WF-CFG-005" for f in out)
+
+
+def test_cfg_005_checkout_with_persist_false_clean():
+    text = ("on: push\njobs:\n  b:\n    runs-on: x\n    steps:\n"
+            "      - uses: actions/checkout@v4\n"
+            "        with:\n          persist-credentials: false\n"
+            "      - uses: actions/upload-artifact@v4\n        with:\n          path: .\n")
+    assert _run(cfg.wf_cfg_005, text) == []
+
+
+def test_cfg_006_secrets_inherit():
+    text = ("on: push\njobs:\n  b:\n    uses: ./.github/workflows/reusable.yml\n"
+            "    secrets: inherit\n")
+    out = _run(cfg.wf_cfg_006, text)
+    assert any(f.rule_id == "WF-CFG-006" for f in out)

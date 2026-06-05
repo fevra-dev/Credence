@@ -110,3 +110,67 @@ def wf_cfg_003(wf: Workflow, resolved, ctx: RuleContext) -> Iterable:
                 cicd_sec=["CICD-SEC-3"], mitre=["T1195.2"],
                 remediation="Pin third-party actions to a full commit SHA."))
     return out
+
+
+def _runs_on_self_hosted(runs_on) -> bool:
+    if isinstance(runs_on, str):
+        return "self-hosted" in runs_on
+    if isinstance(runs_on, list):
+        return any("self-hosted" in str(x) for x in runs_on)
+    return False
+
+
+@register
+def wf_cfg_004(wf: Workflow, resolved, ctx: RuleContext) -> Iterable:
+    if not (set(wf.on_events) & PRIVILEGED_TRIGGERS or "pull_request" in wf.on_events):
+        return []
+    out: List = []
+    for job in wf.jobs:
+        if _runs_on_self_hosted(job.runs_on):
+            out.append(make_finding(
+                "WF-CFG-004", "Self-hosted runner on fork/PR trigger",
+                Severity.HIGH if set(wf.on_events) & CANONICAL_PRIVILEGED_TRIGGERS
+                else Severity.MEDIUM,
+                Confidence.MEDIUM, file_path=wf.path,
+                message=f"Job '{job.job_id}' uses a self-hosted runner under an untrusted trigger",
+                job=job.job_id, line=job.line, cicd_sec=["CICD-SEC-7"], mitre=[],
+                remediation="Do not run untrusted code on self-hosted runners."))
+    return out
+
+
+@register
+def wf_cfg_005(wf: Workflow, resolved, ctx: RuleContext) -> Iterable:
+    out: List = []
+    for job in wf.jobs:
+        checkout_persists = False
+        uploads = False
+        for step in job.steps:
+            uses = step.uses or ""
+            if "actions/checkout" in uses:
+                persist = step.with_.get("persist-credentials")
+                # default is true; only False disables it
+                checkout_persists = str(persist).lower() != "false"
+            if "actions/upload-artifact" in uses:
+                uploads = True
+        if checkout_persists and uploads:
+            out.append(make_finding(
+                "WF-CFG-005", "Checkout credentials may be packed into an artifact",
+                Severity.MEDIUM, Confidence.MEDIUM, file_path=wf.path,
+                message=f"Job '{job.job_id}': checkout persists credentials and an artifact is uploaded",
+                job=job.job_id, line=job.line, cicd_sec=["CICD-SEC-6"], mitre=["T1552"],
+                remediation="Set persist-credentials: false, or exclude .git from uploaded artifacts."))
+    return out
+
+
+@register
+def wf_cfg_006(wf: Workflow, resolved, ctx: RuleContext) -> Iterable:
+    out: List = []
+    for job in wf.jobs:
+        if job.secrets_inherit:
+            out.append(make_finding(
+                "WF-CFG-006", "secrets: inherit shares all secrets",
+                Severity.MEDIUM, Confidence.MEDIUM, file_path=wf.path,
+                message=f"Job '{job.job_id}' passes secrets: inherit to a reusable workflow",
+                job=job.job_id, line=job.line, cicd_sec=["CICD-SEC-5"], mitre=[],
+                remediation="Pass only the specific secrets the called workflow needs."))
+    return out
