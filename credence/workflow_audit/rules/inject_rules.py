@@ -45,3 +45,26 @@ def wf_inj_001(wf: Workflow, resolved: Dict[str, List[ResolvedStep]],
                     ))
                     break
     return out
+
+
+_GH_ENV_RE = re.compile(r">>?\s*\"?\$\{?(?:GITHUB_ENV|GITHUB_PATH)\b")
+
+
+@register
+def wf_inj_002(wf: Workflow, resolved: Dict[str, List[ResolvedStep]],
+               ctx: RuleContext) -> Iterable:
+    out: List = []
+    for job_id, steps in resolved.items():
+        for rs in steps:
+            run = rs.step.run or ""
+            if _GH_ENV_RE.search(run) and untrusted_contexts(run):
+                out.append(make_finding(
+                    "WF-INJ-002", "Untrusted input written to GITHUB_ENV/GITHUB_PATH",
+                    Severity.HIGH, Confidence.MEDIUM, file_path=wf.path,
+                    message="Untrusted context written to $GITHUB_ENV/$GITHUB_PATH (env/PATH injection)",
+                    job=job_id, step_index=rs.step.index, step_name=rs.step.name,
+                    line=rs.step.line, snippet=run[:200],
+                    cicd_sec=["CICD-SEC-4"], mitre=["T1059"],
+                    remediation="Sanitize untrusted input; never write it to GITHUB_ENV/GITHUB_PATH.",
+                ))
+    return out
