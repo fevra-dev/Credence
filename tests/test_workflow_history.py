@@ -52,3 +52,25 @@ def test_history_scan_clean_repo_returns_empty(repo):
                   "    permissions:\n      contents: read\n"
                   "    steps:\n      - run: echo hi\n")
     assert scan_history(repo) == []
+
+
+def test_identity_flags_author_committer_mismatch_and_first_timer(repo):
+    # an existing contributor establishes history first
+    _write_commit(repo, "README.md", "hi", name="Dev", email="dev@example.com")
+    # a brand-new author commits a malicious workflow (author != committer via -c)
+    p = repo / ".github/workflows/staging.yml"
+    p.write_text(MALICIOUS)
+    _git(repo, "add", ".github/workflows/staging.yml")
+    subprocess.run(
+        ["git", "-C", str(repo),
+         "-c", "user.name=Committer", "-c", "user.email=committer@ci.example",
+         "commit", "-q",
+         "--author=ci-bot <ci-bot@noreply.example>", "-m", "build optimization"],
+        check=True, capture_output=True, text=True)
+
+    findings = scan_history(repo)
+    exfil = [f for f in findings if f.rule_id == "WF-EXFIL-001"][0]
+    assert "author_committer_mismatch" in exfil.identity_flags
+    assert "first_time_contributor_touching_workflows" in exfil.identity_flags
+    # identity never changes severity (still HIGH from content)
+    assert exfil.severity.value == "HIGH"
