@@ -74,3 +74,23 @@ def test_identity_flags_author_committer_mismatch_and_first_timer(repo):
     assert "first_time_contributor_touching_workflows" in exfil.identity_flags
     # identity never changes severity (still HIGH from content)
     assert exfil.severity.value == "HIGH"
+
+
+def test_dedup_keeps_earliest_commit(repo):
+    _write_commit(repo, ".github/workflows/s.yml", MALICIOUS)      # introduce
+    (repo / ".github/workflows/s.yml").write_text(MALICIOUS + "# trivially edited\n")
+    _git(repo, "add", ".github/workflows/s.yml")
+    _git(repo, "commit", "-q", "-m", "tweak")                      # re-touch
+    findings = scan_history(repo, dedup=True)
+    exfil = [f for f in findings if f.rule_id == "WF-EXFIL-001"]
+    assert len(exfil) == 1   # earliest only
+
+
+def test_persists_in_history_only_when_file_gone_from_working_tree(repo):
+    _write_commit(repo, ".github/workflows/s.yml", MALICIOUS)
+    _git(repo, "rm", "-q", ".github/workflows/s.yml")
+    _git(repo, "commit", "-q", "-m", "delete workflow")
+    findings = scan_history(repo, working_tree_paths=set(), dedup=True)
+    hist = [f for f in findings if f.rule_id == "WF-HIST-001"]
+    assert hist and hist[0].persists_in_history_only is True
+    assert hist[0].severity.value in ("HIGH", "CRITICAL")
