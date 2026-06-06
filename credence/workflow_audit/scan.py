@@ -17,6 +17,8 @@ from .taint import resolve_job
 from .rules import RuleContext, run_rules
 from .history import scan_history
 
+_MAX_FILE_BYTES = 2 * 1024 * 1024   # workflow YAML is normally < 50 KB (F-003)
+
 
 def _fingerprint(f: WorkflowFinding) -> str:
     basis = f"{f.rule_id}|{f.file_path}|{f.job}|{f.source}|{f.commit or ''}|{f.snippet}"
@@ -55,7 +57,22 @@ def _discover(root: Path) -> List[Path]:
 
 def _scan_file(path: Path, root: Path, extra_hosts: Set[str]) -> List[WorkflowFinding]:
     rel = path.relative_to(root).as_posix()
-    text = path.read_text(errors="replace")
+    # Bound memory: read at most the cap; a multi-MB workflow file is anomalous
+    # and could be DoS bait (F-003).
+    try:
+        with path.open("r", errors="replace") as fh:
+            text = fh.read(_MAX_FILE_BYTES + 1)
+    except OSError:
+        return []
+    if len(text) > _MAX_FILE_BYTES:
+        return [WorkflowFinding(
+            rule_id="WF-SIZE-001", title="Workflow file too large to scan",
+            severity=Severity.LOW, confidence=Confidence.HIGH,
+            platform=Platform.GITHUB_ACTIONS, file_path=rel,
+            message=f"File exceeds the {_MAX_FILE_BYTES // (1024 * 1024)} MB scan cap; "
+                    f"skipped (possible DoS bait)",
+            line=1, cicd_sec=["CICD-SEC-7"],
+            remediation="Workflow files should be small; investigate oversized YAML.")]
     is_action = _is_action_path(rel)
     wf = parse_action(text, path=rel) if is_action else parse_workflow(text, path=rel)
     if not wf.parse_ok:

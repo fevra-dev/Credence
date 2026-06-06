@@ -48,10 +48,16 @@ def _decoded_files(normalized_run: str) -> set:
 
 
 def _filter_to_referenced(secret_vars: Dict[str, str], run_text: str) -> Dict[str, str]:
-    """Keep only secret_vars whose VAR name is referenced in run_text."""
+    """Keep only secret_vars actually referenced as $VAR / ${VAR} in run_text.
+
+    Anchored on the shell-variable boundary (not a bare substring) so a short
+    secret-env name like `CI`/`SH` is not spuriously matched inside unrelated
+    words — keeps the exfil rule's secret_vars precise.
+    """
     if not run_text:
         return {}
-    return {var: ref for var, ref in secret_vars.items() if var in run_text}
+    return {var: ref for var, ref in secret_vars.items()
+            if re.search(rf"\$\{{?{re.escape(var)}\b", run_text)}
 
 
 def resolve_job(workflow: Workflow, job: Job) -> List[ResolvedStep]:

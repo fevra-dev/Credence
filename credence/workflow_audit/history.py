@@ -5,6 +5,7 @@ approach of credence/git_history/scanner.py. Zero network."""
 from __future__ import annotations
 
 import copy as _copy
+import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -27,6 +28,33 @@ _PRETTY_META = f"%an{_FS}%ae{_FS}%cn{_FS}%ce{_FS}%aI"
 
 _BOTISH = ("bot", "ci-bot", "[bot]", "github-actions")
 
+_GIT_TIMEOUT = 120          # bound any single git call (F-002: no-timeout hang DoS)
+_MAX_BLOB_BYTES = 2 * 1024 * 1024   # skip historical blobs larger than this (F-003)
+# Harden git invoked inside an UNTRUSTED repo against hostile .git/config / hooks /
+# fsmonitor / ext transports (F-004); -c overrides take precedence over repo config.
+_GIT_HARDEN = ["-c", "core.fsmonitor=", "-c", "core.hooksPath=/dev/null",
+               "-c", "protocol.ext.allow=never"]
+
+
+def _git_env() -> dict:
+    env = dict(os.environ)
+    env["GIT_CONFIG_NOSYSTEM"] = "1"     # ignore /etc/gitconfig
+    env["GIT_TERMINAL_PROMPT"] = "0"     # never prompt
+    env["GIT_ALLOW_PROTOCOL"] = "file:git:http:https:ssh"   # block ext transports
+    return env
+
+
+def _git(repo: Path, *args, timeout: int = _GIT_TIMEOUT):
+    """Hardened, time-bounded git. Returns CompletedProcess, or None on timeout."""
+    full = ["git", "-C", str(repo), *_GIT_HARDEN, *args]
+    try:
+        return subprocess.run(full, capture_output=True, text=True,
+                              errors="replace", env=_git_env(), timeout=timeout)
+    except FileNotFoundError:
+        raise ValueError("git executable not found on PATH")
+    except subprocess.TimeoutExpired:
+        return None
+
 
 @dataclass
 class _Commit:
@@ -44,12 +72,20 @@ def _is_ci_path(path: str) -> bool:
 
 
 def _blob(repo: Path, sha: str, path: str) -> Optional[str]:
+    # Bound memory: skip historical blobs over the cap (F-003) before `git show`
+    # buffers the whole object into memory.
+    size = _git(repo, "cat-file", "-s", f"{sha}:{path}")
+    if size is None or size.returncode != 0:
+        return None
     try:
-        out = subprocess.run(["git", "-C", str(repo), "show", f"{sha}:{path}"],
-                             capture_output=True, text=True, errors="replace")
-    except FileNotFoundError:
-        raise ValueError("git executable not found on PATH")
-    return out.stdout if out.returncode == 0 else None
+        if int(size.stdout.strip()) > _MAX_BLOB_BYTES:
+            return None
+    except ValueError:
+        pass
+    out = _git(repo, "show", f"{sha}:{path}")
+    if out is None or out.returncode != 0:
+        return None
+    return out.stdout
 
 
 def _parse(path: str, text: str) -> Workflow:
@@ -64,13 +100,15 @@ def _run_over_blob(wf: Workflow, ctx: RuleContext) -> List[WorkflowFinding]:
 
 
 def _iter_commit_files(repo: Path, since, max_commits):
-    args = ["git", "-C", str(repo), "log", "--all", "--reverse", "--no-color",
+    args = ["log", "--all", "--reverse", "--no-color",
             "--name-status", f"--pretty=format:{_PRETTY}"]
     if since:
         args += ["--since", since]
     if max_commits:
         args += [f"--max-count={int(max_commits)}"]
-    proc = subprocess.run(args, capture_output=True, text=True, errors="replace")
+    proc = _git(repo, *args)
+    if proc is None:
+        return
     commit: Optional[_Commit] = None
     for line in proc.stdout.splitlines():
         if line.startswith(_SEP):
@@ -87,9 +125,10 @@ def _iter_commit_files(repo: Path, since, max_commits):
 
 def _author_first_commits(repo: Path) -> Dict[str, str]:
     """Map author-email -> sha of their earliest commit across all history."""
-    args = ["git", "-C", str(repo), "log", "--all", "--reverse", "--no-color",
-            f"--pretty=format:%H{_FS}%ae"]
-    proc = subprocess.run(args, capture_output=True, text=True, errors="replace")
+    proc = _git(repo, "log", "--all", "--reverse", "--no-color",
+                f"--pretty=format:%H{_FS}%ae")
+    if proc is None:
+        return {}
     first: Dict[str, str] = {}
     for line in proc.stdout.splitlines():
         if _FS in line:
@@ -144,25 +183,21 @@ def _hist_findings(findings: List[WorkflowFinding],
 
 def _dangling_commits(repo: Path) -> List[str]:
     shas: List[str] = []
-    out = subprocess.run(
-        ["git", "-C", str(repo), "fsck", "--no-reflogs", "--lost-found"],
-        capture_output=True, text=True, errors="replace")
-    for line in (out.stdout + out.stderr).splitlines():
-        parts = line.split()
-        if len(parts) == 3 and parts[1] == "commit":
-            shas.append(parts[2])
-    # also reflog entries
-    rl = subprocess.run(["git", "-C", str(repo), "reflog", "--all",
-                         "--format=%H"], capture_output=True, text=True)
-    shas.extend(s for s in rl.stdout.split() if s)
+    out = _git(repo, "fsck", "--no-reflogs", "--lost-found")
+    if out is not None:
+        for line in (out.stdout + out.stderr).splitlines():
+            parts = line.split()
+            if len(parts) == 3 and parts[1] == "commit":
+                shas.append(parts[2])
+    rl = _git(repo, "reflog", "--all", "--format=%H")
+    if rl is not None:
+        shas.extend(s for s in rl.stdout.split() if s)
     return list(dict.fromkeys(shas))
 
 
 def _commit_meta(repo: Path, sha: str) -> Optional[_Commit]:
-    out = subprocess.run(["git", "-C", str(repo), "show", "-s",
-                          f"--pretty=format:{_PRETTY_META}", sha],
-                         capture_output=True, text=True, errors="replace")
-    if out.returncode != 0 or _FS not in out.stdout:
+    out = _git(repo, "show", "-s", f"--pretty=format:{_PRETTY_META}", sha)
+    if out is None or out.returncode != 0 or _FS not in out.stdout:
         return None
     parts = out.stdout.split(_FS)
     if len(parts) != 5:
@@ -172,8 +207,9 @@ def _commit_meta(repo: Path, sha: str) -> Optional[_Commit]:
 
 
 def _ci_paths_at(repo: Path, sha: str) -> List[str]:
-    out = subprocess.run(["git", "-C", str(repo), "ls-tree", "-r", "--name-only", sha],
-                         capture_output=True, text=True, errors="replace")
+    out = _git(repo, "ls-tree", "-r", "--name-only", sha)
+    if out is None:
+        return []
     return [p for p in out.stdout.splitlines() if _is_ci_path(p)]
 
 

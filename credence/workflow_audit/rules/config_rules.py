@@ -55,9 +55,12 @@ def _is_broad(perms) -> bool:
 def wf_cfg_002(wf: Workflow, resolved, ctx: RuleContext) -> Iterable:
     # absent at both workflow and job level, OR explicitly broad
     if wf.permissions_absent and all(j.permissions_absent for j in wf.jobs):
+        # Absent permissions is a hardening nudge, not an active threat, and fires
+        # on most real-world workflows — LOW keeps it visible without drowning
+        # high-signal findings (F-005). Explicit write-all/broad stays MEDIUM below.
         return [make_finding(
             "WF-CFG-002", "No explicit permissions (broad default token)",
-            Severity.MEDIUM, Confidence.HIGH, file_path=wf.path,
+            Severity.LOW, Confidence.HIGH, file_path=wf.path,
             message="No permissions: block; GITHUB_TOKEN inherits broad default",
             line=1, cicd_sec=["CICD-SEC-5"], mitre=[],
             remediation="Add a least-privilege permissions: block (start from contents: read).")]

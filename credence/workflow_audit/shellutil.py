@@ -20,9 +20,25 @@ _HTTP_TOOLS = ("curl", "wget")
 _DNS_TOOLS = ("nslookup", "dig", "host")
 
 # Tool names that IFS-substitution can split into adjacent fragments
-# e.g. cu${IFS}rl → normalize → "cu rl"; compact it back to "curl"
-_IFS_SPLIT_TOOLS = ("curl", "wget", "bash", "base64", "python", "python3",
-                    "nslookup", "wget")
+# e.g. cu${IFS}rl → normalize → "cu rl"; compact it back to "curl".
+# Derived from EVERY tool the detection cares about so IFS-deobfuscation stays in
+# sync with the decoder/shell/dns/http sets (F-001: a hardcoded 7-tool list let
+# dig/openssl/sh/gunzip/… evade when IFS-split). The first word of each multi-token
+# entry is the binary name. `host` is deliberately excluded — too common as English
+# prose ("ho st") to reassemble without false positives; `ho${IFS}st` of the rarely
+# used `host` command is an accepted residual (plain `host` is still detected).
+def _tool_words() -> tuple:
+    words: Set[str] = set()
+    for group in (_DECODERS, _INTERPRETERS):
+        for entry in group:
+            words.add(entry.split()[0])
+    words.update(_SHELLS)
+    words.update(_HTTP_TOOLS)
+    words.update(("nc", "ncat", "eval", "openssl", "dig", "nslookup"))
+    return tuple(sorted(words))
+
+
+_IFS_SPLIT_TOOLS = _tool_words()
 
 
 def _compact_ifs_tools(text: str) -> str:
