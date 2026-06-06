@@ -4,9 +4,9 @@
 
 **Exposure intelligence for the AI-infrastructure layer**
 
-*Finds and weighs leaked credentials, MCP and agent configs, git-metadata secrets, and supply-chain risk — and tells you which exposures to trust.*
+*Finds and weighs leaked credentials, MCP and agent configs, git-metadata secrets, supply-chain risk, and CI/CD workflow threats — and tells you which exposures to trust.*
 
-[![Version](https://img.shields.io/badge/version-0.8.1-blue.svg)](https://github.com/fevra-dev/Credence/releases)
+[![Version](https://img.shields.io/badge/version-0.9.0-blue.svg)](https://github.com/fevra-dev/Credence/releases)
 [![Python](https://img.shields.io/badge/python-3.9--3.12-green.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 [![SARIF](https://img.shields.io/badge/output-SARIF%202.1.0-8a2be2.svg)](docs/INTEGRATIONS_CODE_SCANNING.md)
@@ -30,6 +30,7 @@ General secret scanners treat the AI stack as plain text. Credence reads it: **M
 | **Confirms a key is *live*** (opt-in verification) | sometimes | ✅ 16 providers |
 | **AI-infra surfaces** (MCP, agent skills, model cards) | text-only | ✅ structural |
 | **Git-metadata creds** (`.git/config`, `.gitmodules`, `extraHeader`) | ✗ | ✅ |
+| **CI/CD workflow threats** (poisoned pipelines, over working tree *and* git history) | ✗ | ✅ |
 | **Excessive-agency / MCP posture scoring** | ✗ | ✅ 0–100 |
 | **Orphan-signal triage** (rare leak vs public noise) | ✗ | ✅ |
 | **Compliance tagging** (OWASP LLM · ATLAS · ATT&CK) | ✗ | ✅ every finding |
@@ -188,11 +189,12 @@ credence/
 ├── git_history/            # all-reachable-commit secret scanning
 ├── supply_chain/           # lock-file SCA + OSV.dev + CycloneDX AI-BOM
 ├── agent_exposure/         # MCP/agent excessive-agency + posture + debug-print
+├── workflow_audit/         # GitHub Actions poisoned-pipeline rules + git-history forensics
 ├── advanced/               # git-metadata, ML-model, LLM-exposure, MCP server, orphan registry
 └── reporters/              # console · JSON · CSV · HTML · SARIF · CycloneDX
 ```
 
-Design principles: **precision over recall** (every finding type ships with a fixture corpus), **fail-closed gating**, and **honest scoping** (the tool says what it can't scan rather than silently skipping). 457 tests, green across Python 3.9–3.12.
+Design principles: **precision over recall** (every finding type ships with a fixture corpus), **fail-closed gating**, and **honest scoping** (the tool says what it can't scan rather than silently skipping). 561 tests, green across Python 3.9–3.12.
 
 ---
 
